@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 )
@@ -28,6 +29,7 @@ const (
 	stateId
 	stateAssign
 	stateOperator
+	stateOther
 	stateDone
 	stateErr
 )
@@ -50,6 +52,8 @@ var lexeme string
 var invalidToken = -1
 var operatorTable = map[byte]int{'+': ADD, '-': MINUS, '*': MULTIPLY,
 	'/': DIV, '=': EQUAL, '<': LESS}
+
+var lineBuf = bytes.NewBuffer([]byte(""))
 var tokenTable = map[int]string{
 	KEYWORD:    "keyword",
 	ID:         "id",
@@ -93,6 +97,8 @@ func GetToken() int {
 			currentState = handleAssign(c)
 		case stateOperator:
 			currentState = handleOperator(c)
+		case stateOther:
+			currentState = handleOther(c)
 		case stateDone:
 			currentState = stateStart
 			return token
@@ -114,6 +120,7 @@ func handleOperator(c byte) int {
 	token = opToken
 	return stateDone
 }
+
 func isOperator(c byte) bool {
 	if _, ok := operatorTable[c]; ok {
 		return true
@@ -121,12 +128,15 @@ func isOperator(c byte) bool {
 	return false
 }
 
-func handleSpecial(c byte) int {
+func handleOther(c byte) int {
 	switch c {
 	case '(':
 	case ')':
+	case ';':
 	default:
 	}
+	tokenBegin = rdPos
+	lexeme = getLexeme(rdPos + 1)
 	return stateDone
 }
 
@@ -134,12 +144,17 @@ func handleSpecial(c byte) int {
 func handleStart(c byte) int {
 	switch c {
 	case ':':
-		rdPos--
+		putBack()
 		return stateAssign
 	case '{':
 		return stateComment
+	case '(':
+		fallthrough
+	case ')':
+		fallthrough
 	case ';':
-		return stateStart
+		putBack()
+		return stateOther
 	case ' ':
 		return stateStart
 	case '\t':
@@ -214,9 +229,9 @@ func handleId(c byte) int {
 		rdPos--
 		return stateDone
 	case '\n':
-		line++
 		fallthrough
 	case '\t':
+		fallthrough
 	case ' ':
 		fallthrough
 	case ';':
@@ -278,6 +293,7 @@ func isCharacter(c byte) bool {
 }
 
 func main() {
+	//lastLine := line
 	for tokenType := GetToken(); tokenType != invalidToken; {
 		fmt.Printf("line:%-4d token:[%-10s] \tlexeme:%-8v\n", line, tokenTable[tokenType], lexeme)
 		tokenType = GetToken()
