@@ -105,6 +105,8 @@ func GetToken() int {
 }
 
 func handleOperator(c byte) int {
+	tokenBegin = rdPos
+	lexeme = getLexeme(rdPos + 1)
 	opToken, ok := operatorTable[c]
 	if !ok {
 		return stateErr
@@ -154,6 +156,10 @@ func handleStart(c byte) int {
 			tokenBegin = rdPos
 			return stateId
 		}
+		if isOperator(c) {
+			putBack()
+			return stateOperator
+		}
 	}
 	return stateDone
 }
@@ -184,6 +190,11 @@ func handleNumber(c byte) int {
 		putBack()
 		return stateDone
 	default:
+		if isOperator(c) {
+			lexeme = getLexeme(rdPos)
+			putBack()
+			return stateDone
+		}
 		if !isDigit(c) {
 			return stateErr
 		}
@@ -268,7 +279,7 @@ func isCharacter(c byte) bool {
 
 func main() {
 	for tokenType := GetToken(); tokenType != invalidToken; {
-		fmt.Printf("line:%d token:%s %v\n", line, tokenTable[tokenType], lexeme)
+		fmt.Printf("line:%-4d token:[%-10s] \tlexeme:%-8v\n", line, tokenTable[tokenType], lexeme)
 		tokenType = GetToken()
 	}
 }
