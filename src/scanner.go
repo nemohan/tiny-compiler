@@ -35,9 +35,11 @@ const (
 )
 
 type tokenSymbol struct {
-	file    string
-	line    int
-	comment string
+	file      string
+	line      int
+	comment   string
+	tokenType int
+	lexeme    string
 }
 
 var fileBuf []byte
@@ -45,15 +47,20 @@ var currentState = stateStart
 var tokenBegin int
 var tokenEnd int
 var next int
-var symbolTable map[int]string
+
+//var symbolTable map[int]string
 var line = 1
 var rdPos int
 var lexeme string
 var invalidToken = -1
+var lines = make([]uint32, 0)
 var operatorTable = map[byte]int{'+': ADD, '-': MINUS, '*': MULTIPLY,
 	'/': DIV, '=': EQUAL, '<': LESS}
 
 var lineBuf = bytes.NewBuffer([]byte(""))
+var lineBegin = 0
+var lineEnd = 0
+var symbolTable = make(map[int][]tokenSymbol)
 var tokenTable = map[int]string{
 	KEYWORD:    "keyword",
 	ID:         "id",
@@ -160,6 +167,10 @@ func handleStart(c byte) int {
 	case '\t':
 		return stateStart
 	case '\n':
+		begin := uint32(lineBegin) & 0xffff
+		end := (uint32(rdPos)) & 0xffff
+		lines = append(lines, begin|(end<<16))
+		lineBegin = rdPos + 1
 		line++
 		return stateStart
 	default:
@@ -184,6 +195,10 @@ func handleComment(c byte) int {
 	case '}':
 		return stateStart
 	case '\n':
+		begin := uint32(lineBegin) & 0xffff
+		end := (uint32(rdPos) + 1) & 0xffff
+		lines = append(lines, begin|(end<<16))
+		lineBegin = rdPos + 1
 		line++
 	default:
 	}
@@ -292,10 +307,41 @@ func isCharacter(c byte) bool {
 	return false
 }
 
-func main() {
-	//lastLine := line
-	for tokenType := GetToken(); tokenType != invalidToken; {
-		fmt.Printf("line:%-4d token:[%-10s] \tlexeme:%-8v\n", line, tokenTable[tokenType], lexeme)
-		tokenType = GetToken()
+func dumpWithLine() {
+	for tokenType := GetToken(); tokenType != invalidToken; tokenType = GetToken() {
+		tokenLine, ok := symbolTable[line]
+		if !ok {
+			tokenLine = make([]tokenSymbol, 0)
+			symbolTable[line] = tokenLine
+		}
+		tokenLine = append(tokenLine, tokenSymbol{lexeme: lexeme, tokenType: tokenType,
+			line: line})
+		symbolTable[line] = tokenLine
 	}
+	fmt.Printf("line num:%d sym:%d\n", len(lines), len(symbolTable))
+	for lineNum, pos := range lines {
+		lexemes, ok := symbolTable[lineNum+1]
+		if !ok {
+			continue
+		}
+		begin := pos & 0xffff
+		end := (pos >> 16) & 0xffff
+		fmt.Printf("\n[line:%d %s]\n", lineNum+1, string(fileBuf[begin:end]))
+		for _, l := range lexemes {
+			fmt.Printf("line:%-4d token:[%-10s] \tlexeme:%-8v\n",
+				l.line, tokenTable[l.tokenType], l.lexeme)
+		}
+	}
+}
+func dumpWithoutLine() {
+	for tokenType := GetToken(); tokenType != invalidToken; tokenType = GetToken() {
+		fmt.Printf("line:%-4d token:[%-10s] \tlexeme:%-8v\n",
+			line, tokenTable[tokenType], lexeme)
+	}
+
+}
+
+func main() {
+	//dumpWithoutLine()
+	dumpWithLine()
 }
