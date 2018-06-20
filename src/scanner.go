@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"io/ioutil"
 )
@@ -405,25 +404,11 @@ func dumpWithoutLine() {
 
 }
 
-var sourceFile = ""
-
-func readFile() {
-	fmt.Printf("parse source file:%s\n", sourceFile)
-	buf, err := ioutil.ReadFile(sourceFile)
+func readFile(srcFile string) {
+	fmt.Printf("parse source file:%s\n", srcFile)
+	buf, err := ioutil.ReadFile(srcFile)
 	if err != nil {
 		panic(err)
 	}
 	fileBuf = buf
-}
-func main() {
-	flag.StringVar(&sourceFile, "f", "", "tiny source file")
-	flag.Parse()
-	if sourceFile == "" {
-		fmt.Printf("no source file\n usage: scanner -f source\n")
-		return
-	}
-	//dumpWithoutLine()
-	//dumpWithLine()
-	readFile()
-	Parse()
 }

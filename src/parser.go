@@ -67,8 +67,11 @@ func parseStmtSequence(root *SyntaxTree) *SyntaxTree {
 			right := parseAssignStmt()
 			assignTree.AddRightChild(right)
 			root.AddChild(assignTree)
+			assignTree.Traverse()
+			fmt.Printf("before match:%v\n", currentToken)
 			//don't care match or not
 			matchStr(";")
+			fmt.Printf("token:%v--------------\n", currentToken)
 		default:
 			lastToken := currentToken
 			//TODO: error
@@ -90,12 +93,15 @@ func parseStmtSequence(root *SyntaxTree) *SyntaxTree {
 				continue
 			}
 			if matchStr("repeat") {
-				parseRepeatStmt()
+				repeatTree := NewSyntaxTree(lastToken, stmtK)
+				root.AddChild(repeatTree)
+				parseRepeatStmt(repeatTree)
 				continue
-
 			}
 			if matchStr("write") {
-				parseWriteStmt()
+				writeTree := NewSyntaxTree(lastToken, stmtK)
+				root.AddChild(writeTree)
+				writeTree.AddChild(parseWriteStmt())
 				continue
 			}
 			return tree
@@ -132,10 +138,15 @@ func parseIfStmt() *SyntaxTree {
 	return tree
 }
 
-func parseRepeatStmt() {
-	parseStmtSequence(nil)
-	matchStr("until")
-	parseExp()
+func parseRepeatStmt(root *SyntaxTree) {
+	fmt.Printf("parseReat xxxxxxxxxxxxxxxxxxxx\n")
+	parseStmtSequence(root)
+	if !matchStr("until") {
+		//TODO:
+	}
+	root.AddChild(parseExp())
+	match(tokenSemicolon)
+	fmt.Printf("parse Repeat========\n")
 }
 
 func parseAssignStmt() *SyntaxTree {
@@ -158,8 +169,8 @@ func parseReadStmt() *SyntaxTree {
 	return nil
 }
 
-func parseWriteStmt() {
-	parseExp()
+func parseWriteStmt() *SyntaxTree {
+	return parseExp()
 }
 
 func handleExp(tree *SyntaxTree) *SyntaxTree {
@@ -182,6 +193,9 @@ func parseExp() *SyntaxTree {
 		expTree.Traverse()
 
 	case tokenEqual:
+		fmt.Printf("match token equal\n")
+		node := NewSyntaxTree(currentToken, expK)
+		node.AddLeftChild(expTree)
 		match(tokenEqual)
 		expTree = handleExp(expTree)
 	default:
@@ -193,22 +207,28 @@ func parseExp() *SyntaxTree {
 func parseSimpleExp() *SyntaxTree {
 	leftTree := parseTerm()
 	tokenType := currentToken.tokenType
+	fmt.Printf("ParseSimpleExp:%v add:%d minus:%d\n", currentToken, tokenAdd, tokenMinus)
 	for tokenType == tokenAdd || tokenType == tokenMinus {
-		switch tokenAdd {
+		fmt.Printf("fuck:%v\n", currentToken)
+		switch tokenType {
 		case tokenAdd:
 			tree := NewSyntaxTree(currentToken, expK)
 			tree.AddLeftChild(leftTree)
 			match(tokenAdd)
-			tree.AddRightChild(parseSimpleExp())
+			tree.AddRightChild(parseTerm())
 			leftTree = tree
+
 		case tokenMinus:
+			fmt.Printf("match token minus\n")
 			tree := NewSyntaxTree(currentToken, expK)
+			tree.AddLeftChild(leftTree)
 			match(tokenMinus)
-			tree.AddRightChild(parseSimpleExp())
+			tree.AddRightChild(parseTerm())
 			leftTree = tree
 		default:
 			panic("parseSimpleExp")
 		}
+		tokenType = currentToken.tokenType
 	}
 	return leftTree
 }
