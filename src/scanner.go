@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"io/ioutil"
 )
@@ -107,13 +108,18 @@ var keywordTable = []string{
 	"end",
 }
 
+var testFile1 = "if.ty"
+var testFile2 = "test.ty"
+
 func init() {
-	buf, err := ioutil.ReadFile("if.ty")
-	if err != nil {
-		panic(err)
-	}
-	fileBuf = buf
-	fmt.Printf("%c\n", fileBuf[len(buf)-1])
+	/*
+		buf, err := ioutil.ReadFile(testFile1)
+		if err != nil {
+			panic(err)
+		}
+		fileBuf = buf
+		fmt.Printf("%c\n", fileBuf[len(buf)-1])
+	*/
 }
 
 func newToken() *tokenSymbol {
@@ -399,8 +405,25 @@ func dumpWithoutLine() {
 
 }
 
+var sourceFile = ""
+
+func readFile() {
+	fmt.Printf("parse source file:%s\n", sourceFile)
+	buf, err := ioutil.ReadFile(sourceFile)
+	if err != nil {
+		panic(err)
+	}
+	fileBuf = buf
+}
 func main() {
+	flag.StringVar(&sourceFile, "f", "", "tiny source file")
+	flag.Parse()
+	if sourceFile == "" {
+		fmt.Printf("no source file\n usage: scanner -f source\n")
+		return
+	}
 	//dumpWithoutLine()
 	//dumpWithLine()
+	readFile()
 	Parse()
 }
