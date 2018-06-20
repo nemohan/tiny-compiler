@@ -49,6 +49,7 @@ func Parse() {
 	astRoot := NewSyntaxTree(nil, fileK)
 	parseStmtSequence(astRoot)
 	astRoot.Traverse()
+	astRoot.DFSTraverse()
 }
 
 func parseStmtSequence(root *SyntaxTree) *SyntaxTree {

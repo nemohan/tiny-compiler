@@ -140,6 +140,14 @@ func newToken() *tokenSymbol {
 	return t
 }
 
+func (t *tokenSymbol) SimpleStr() string {
+	return fmt.Sprintf("{lexeme:%s}", t.lexeme)
+}
+func (t *tokenSymbol) String() string {
+	return fmt.Sprintf("{f:%s l:%d type:%d lexeme:%s}",
+		t.file, t.line, t.tokenType, t.lexeme)
+}
+
 func GetToken() *tokenSymbol {
 	lexeme = ""
 	size := len(fileBuf)

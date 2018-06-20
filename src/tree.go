@@ -35,6 +35,7 @@ func (st *SyntaxTree) AddSlibling(node *SyntaxTree) {
 
 }
 func (st *SyntaxTree) AddChild(node *SyntaxTree) {
+	//node.height = st.height + 1
 	if st.child == nil {
 		st.AddLeftChild(node)
 		return
@@ -42,6 +43,7 @@ func (st *SyntaxTree) AddChild(node *SyntaxTree) {
 	st.AddRightChild(node)
 }
 func (st *SyntaxTree) AddLeftChild(node *SyntaxTree) {
+	//node.height = st.height + 1
 	st.child = node
 }
 
@@ -50,6 +52,7 @@ func (st *SyntaxTree) AddRightChild(node *SyntaxTree) {
 		msg := fmt.Sprintf("node:%v child is empty\n", st)
 		panic(msg)
 	}
+	//node.height = st.height + 1
 	next := st.child
 	for ; next.slibling != nil; next = next.slibling {
 		//empty
@@ -76,7 +79,15 @@ func dfsTraverse(node *SyntaxTree) {
 	if node == nil {
 		return
 	}
-	fmt.Printf("node:%d\n", node.nodeKind)
+	//TODO: the root node's token is nil
+	tokenStr := ""
+	if node.token != nil {
+		//tokenStr = node.token.String()
+		tokenStr = node.token.SimpleStr()
+	}
+	height := node.height
+	fmt.Printf("%s node:%d height:%d %s\n", tabNum(height),
+		node.nodeKind, height, tokenStr)
 	dfsTraverse(node.child)
 	dfsTraverse(node.slibling)
 }
