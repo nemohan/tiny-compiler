@@ -58,11 +58,12 @@ func parseStmtSequence(root *SyntaxTree) *SyntaxTree {
 		case tokenId:
 			left := NewSyntaxTree(currentToken, expK)
 			match(tokenId)
+			lastToken := currentToken
 			if !match(tokenAssign) {
 				parseErr = errors.New(" tokenAssign")
 				return tree
 			}
-			assignTree := NewSyntaxTree(currentToken, expK)
+			assignTree := NewSyntaxTree(lastToken, expK)
 			assignTree.AddLeftChild(left)
 			right := parseAssignStmt()
 			assignTree.AddRightChild(right)
