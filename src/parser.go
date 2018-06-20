@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	"fmt"
+	//"fmt"
 )
 
 const (
@@ -45,7 +45,6 @@ var parseErr error
 
 func Parse() {
 	currentToken = GetToken()
-	fmt.Printf("current token:%v\n", currentToken)
 	astRoot := NewSyntaxTree(nil, fileK)
 	parseStmtSequence(astRoot)
 	astRoot.Traverse()
@@ -70,16 +69,13 @@ func parseStmtSequence(root *SyntaxTree) *SyntaxTree {
 			assignTree.AddRightChild(right)
 			root.AddChild(assignTree)
 			assignTree.Traverse()
-			fmt.Printf("before match:%v\n", currentToken)
 			//don't care match or not
 			match(tokenSemi)
-			fmt.Printf("token:%v--------------\n", currentToken)
 		default:
 			lastToken := currentToken
 			//TODO: error
 			if match(tokenIf) {
 				ifTree := NewSyntaxTree(lastToken, stmtK)
-				fmt.Printf("match if\n")
 				ifTree.AddLeftChild(parseIfStmt())
 				root.AddChild(ifTree)
 				match(tokenSemi)
@@ -91,7 +87,6 @@ func parseStmtSequence(root *SyntaxTree) *SyntaxTree {
 				readTree.AddLeftChild(parseReadStmt())
 				root.AddChild(readTree)
 				match(tokenSemi)
-				fmt.Printf("parse read done\n")
 				continue
 			}
 			if match(tokenRepeat) {
@@ -124,7 +119,6 @@ func parseIfStmt() *SyntaxTree {
 	}
 	slibling := NewSyntaxTree(lastToken, expK)
 	tree.AddSlibling(slibling)
-	fmt.Printf("match then\n")
 	parseStmtSequence(slibling)
 	//slibling.AddLeftChild(child)
 
@@ -136,25 +130,20 @@ func parseIfStmt() *SyntaxTree {
 	if !match(tokenEndBlock) {
 
 	}
-	fmt.Printf("match end\n")
 	return tree
 }
 
 func parseRepeatStmt(root *SyntaxTree) {
-	fmt.Printf("parseReat xxxxxxxxxxxxxxxxxxxx\n")
 	parseStmtSequence(root)
 	if !match(tokenUntil) {
 		//TODO:
 	}
 	root.AddChild(parseExp())
 	match(tokenSemi)
-	fmt.Printf("parse Repeat========\n")
 }
 
 func parseAssignStmt() *SyntaxTree {
-	fmt.Printf("parse assignStmt\n")
 	tree := parseExp()
-	fmt.Printf("parse assignStmt end:%v\n", currentToken)
 	return tree
 }
 
@@ -162,7 +151,6 @@ func parseReadStmt() *SyntaxTree {
 	switch currentToken.tokenType {
 	case tokenId:
 		tree := NewSyntaxTree(currentToken, expK)
-		fmt.Printf("parseReadStmt:%v\n", currentToken)
 		match(tokenId)
 		return tree
 	default:
@@ -186,16 +174,13 @@ func parseExp() *SyntaxTree {
 	expTree := parseSimpleExp()
 	switch currentToken.tokenType {
 	case tokenLess:
-		fmt.Printf("match token less\n")
 		node := NewSyntaxTree(currentToken, expK)
 		node.AddLeftChild(expTree)
 		match(tokenLess)
 		expTree = handleExp(node)
-		fmt.Printf("==================\n")
 		expTree.Traverse()
 
 	case tokenEqual:
-		fmt.Printf("match token equal\n")
 		node := NewSyntaxTree(currentToken, expK)
 		node.AddLeftChild(expTree)
 		match(tokenEqual)
@@ -209,9 +194,7 @@ func parseExp() *SyntaxTree {
 func parseSimpleExp() *SyntaxTree {
 	leftTree := parseTerm()
 	tokenType := currentToken.tokenType
-	fmt.Printf("ParseSimpleExp:%v add:%d minus:%d\n", currentToken, tokenAdd, tokenMinus)
 	for tokenType == tokenAdd || tokenType == tokenMinus {
-		fmt.Printf("fuck:%v\n", currentToken)
 		switch tokenType {
 		case tokenAdd:
 			tree := NewSyntaxTree(currentToken, expK)
@@ -221,7 +204,6 @@ func parseSimpleExp() *SyntaxTree {
 			leftTree = tree
 
 		case tokenMinus:
-			fmt.Printf("match token minus\n")
 			tree := NewSyntaxTree(currentToken, expK)
 			tree.AddLeftChild(leftTree)
 			match(tokenMinus)
@@ -269,17 +251,14 @@ func parseFactor() *SyntaxTree {
 		}
 		return tree
 	case tokenNumber:
-		fmt.Printf("match number:%s\n", currentToken.lexeme)
 		tree := NewSyntaxTree(currentToken, expK)
 		match(tokenNumber)
 		return tree
 	case tokenId:
-		fmt.Printf("match id:%s\n", currentToken.lexeme)
 		tree := NewSyntaxTree(currentToken, expK)
 		match(tokenId)
 		return tree
 	default:
-		fmt.Printf("parse factor default\n")
 	}
 	return nil
 }
