@@ -57,6 +57,30 @@ func (st *SyntaxTree) AddRightChild(node *SyntaxTree) {
 	next.slibling = node
 }
 
+func (st *SyntaxTree) DFSTraverse() {
+	if st == nil {
+		return
+	}
+	//stack := []*SyntaxTree{st.root}
+	dfsTraverse(st)
+}
+
+func tabNum(n int) string {
+	s := ""
+	for i := 0; i < n; i++ {
+		s = s + "\t"
+	}
+	return s
+}
+func dfsTraverse(node *SyntaxTree) {
+	if node == nil {
+		return
+	}
+	fmt.Printf("node:%d\n", node.nodeKind)
+	dfsTraverse(node.child)
+	dfsTraverse(node.slibling)
+}
+
 func (st *SyntaxTree) Traverse() {
 	queue := []*SyntaxTree{st}
 	traverse(queue)
@@ -69,12 +93,6 @@ func traverse(queue []*SyntaxTree) {
 	queue = append(queue[:0], queue[1:]...)
 	fmt.Printf("kind:%d     token:%v height:%d\n", node.nodeKind, node.token, node.height)
 	next := node.child
-	/*
-	    buf: same node visit twice
-			if next == nil {
-				next = node.slibling
-			}
-	*/
 	for ; next != nil; next = next.slibling {
 		next.height = node.height + 1
 		queue = append(queue, next)

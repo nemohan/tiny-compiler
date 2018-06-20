@@ -71,35 +71,35 @@ func parseStmtSequence(root *SyntaxTree) *SyntaxTree {
 			assignTree.Traverse()
 			fmt.Printf("before match:%v\n", currentToken)
 			//don't care match or not
-			matchStr(";")
+			match(tokenSemi)
 			fmt.Printf("token:%v--------------\n", currentToken)
 		default:
 			lastToken := currentToken
 			//TODO: error
-			if matchStr("if") {
+			if match(tokenIf) {
 				ifTree := NewSyntaxTree(lastToken, stmtK)
 				fmt.Printf("match if\n")
 				ifTree.AddLeftChild(parseIfStmt())
 				root.AddChild(ifTree)
-				matchStr(";")
+				match(tokenSemi)
 				continue
 			}
 
-			if matchStr("read") {
+			if match(tokenRead) {
 				readTree := NewSyntaxTree(lastToken, stmtK)
 				readTree.AddLeftChild(parseReadStmt())
 				root.AddChild(readTree)
-				matchStr(";")
+				match(tokenSemi)
 				fmt.Printf("parse read done\n")
 				continue
 			}
-			if matchStr("repeat") {
+			if match(tokenRepeat) {
 				repeatTree := NewSyntaxTree(lastToken, stmtK)
 				root.AddChild(repeatTree)
 				parseRepeatStmt(repeatTree)
 				continue
 			}
-			if matchStr("write") {
+			if match(tokenWrite) {
 				writeTree := NewSyntaxTree(lastToken, stmtK)
 				root.AddChild(writeTree)
 				writeTree.AddChild(parseWriteStmt())
@@ -118,7 +118,7 @@ func parseStmt() {
 func parseIfStmt() *SyntaxTree {
 	tree := parseExp()
 	lastToken := currentToken
-	if !matchStr("then") {
+	if !match(tokenThen) {
 		//TODO:
 	}
 	slibling := NewSyntaxTree(lastToken, expK)
@@ -128,11 +128,11 @@ func parseIfStmt() *SyntaxTree {
 	//slibling.AddLeftChild(child)
 
 	//optional
-	if matchStr("else") {
+	if match(tokenElse) {
 		parseStmtSequence(nil)
 	}
 
-	if !matchStr("end") {
+	if !match(tokenEndBlock) {
 
 	}
 	fmt.Printf("match end\n")
@@ -142,11 +142,11 @@ func parseIfStmt() *SyntaxTree {
 func parseRepeatStmt(root *SyntaxTree) {
 	fmt.Printf("parseReat xxxxxxxxxxxxxxxxxxxx\n")
 	parseStmtSequence(root)
-	if !matchStr("until") {
+	if !match(tokenUntil) {
 		//TODO:
 	}
 	root.AddChild(parseExp())
-	match(tokenSemicolon)
+	match(tokenSemi)
 	fmt.Printf("parse Repeat========\n")
 }
 
@@ -260,10 +260,10 @@ func parseTerm() *SyntaxTree {
 
 func parseFactor() *SyntaxTree {
 	switch currentToken.tokenType {
-	case tokenLeftParen:
-		match(tokenLeftParen)
+	case tokenLParen:
+		match(tokenLParen)
 		tree := parseExp()
-		if !match(tokenRightParen) {
+		if !match(tokenRParen) {
 
 		}
 		return tree
@@ -283,13 +283,6 @@ func parseFactor() *SyntaxTree {
 	return nil
 }
 
-func matchStr(lexeme string) bool {
-	if lexeme == currentToken.lexeme {
-		currentToken = GetToken()
-		return true
-	}
-	return false
-}
 func match(token int) bool {
 	if token == currentToken.tokenType {
 		currentToken = GetToken()

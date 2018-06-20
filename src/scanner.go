@@ -8,6 +8,14 @@ import (
 
 const (
 	KEYWORD = iota
+	IF
+	ELSE
+	READ
+	THEN
+	REPEAT
+	UNTIL
+	WRITE
+	END
 	ID
 	NUMBER
 	ADD
@@ -16,27 +24,35 @@ const (
 	DIV
 	EQUAL
 	LESS
-	LEFTPAREN
-	RIGHTPAREN
-	SEMICOLON
+	LPAREN
+	RPAREN
+	SEMI
 	ASSIGN
 	tokenEOF
 )
 
 const (
-	tokenKeyWord    = KEYWORD
-	tokenId         = ID
-	tokenNumber     = NUMBER
-	tokenAdd        = ADD
-	tokenMinus      = MINUS
-	tokenMultiply   = MULTIPLY   // *
-	tokenDiv        = DIV        // \
-	tokenEqual      = EQUAL      // =
-	tokenLess       = LESS       // <
-	tokenLeftParen  = LEFTPAREN  // (
-	tokenRightParen = RIGHTPAREN // )
-	tokenSemicolon  = SEMICOLON  // ;
-	tokenAssign     = ASSIGN     // :=
+	tokenKeyWord  = KEYWORD
+	tokenIf       = IF
+	tokenElse     = ELSE
+	tokenThen     = THEN
+	tokenRead     = READ
+	tokenWrite    = WRITE
+	tokenRepeat   = REPEAT
+	tokenUntil    = UNTIL
+	tokenEndBlock = END
+	tokenId       = ID
+	tokenNumber   = NUMBER
+	tokenAdd      = ADD
+	tokenMinus    = MINUS
+	tokenMultiply = MULTIPLY // *
+	tokenDiv      = DIV      // \
+	tokenEqual    = EQUAL    // =
+	tokenLess     = LESS     // <
+	tokenLParen   = LPAREN   // (
+	tokenRParen   = RPAREN   // )
+	tokenSemi     = SEMI     // ;
+	tokenAssign   = ASSIGN   // :=
 )
 
 const (
@@ -79,61 +95,47 @@ var lineBegin = 0
 var lineEnd = 0
 var symbolTable = make(map[int][]*tokenSymbol)
 var tokenTable = map[int]string{
-	KEYWORD:    "keyword",
-	ID:         "id",
-	NUMBER:     "number",
-	ADD:        "add",
-	MINUS:      "minus op",
-	MULTIPLY:   "mutiply",
-	DIV:        "div",
-	EQUAL:      "equal",
-	LESS:       "less",
-	LEFTPAREN:  "leftparen(",
-	RIGHTPAREN: "rightparen)",
-	SEMICOLON:  "semicolon",
-	ASSIGN:     "assign",
+	KEYWORD:  "keyword",
+	ID:       "id",
+	NUMBER:   "number",
+	ADD:      "add",
+	MINUS:    "minus op",
+	MULTIPLY: "mutiply",
+	DIV:      "div",
+	EQUAL:    "equal",
+	LESS:     "less",
+	LPAREN:   "leftparen(",
+	RPAREN:   "rightparen)",
+	SEMI:     "semicolon",
+	ASSIGN:   "assign",
 }
 
 var token int
 
-var keywordTable = []string{
-	"if",
-	"read",
-	"write",
-	"until",
-	"then",
-	"else",
-	"repeat",
-	"end",
+var keywordTable = map[string]int{
+	"if":     IF,
+	"read":   READ,
+	"write":  WRITE,
+	"until":  UNTIL,
+	"then":   THEN,
+	"else":   ELSE,
+	"repeat": REPEAT,
+	"end":    END,
 }
 
-var testFile1 = "if.ty"
-var testFile2 = "test.ty"
-
-func init() {
-	/*
-		buf, err := ioutil.ReadFile(testFile1)
-		if err != nil {
-			panic(err)
-		}
-		fileBuf = buf
-		fmt.Printf("%c\n", fileBuf[len(buf)-1])
-	*/
-}
+var currentSrcFile = ""
 
 func newToken() *tokenSymbol {
 	t := &tokenSymbol{
-		file:      "test.ty",
+		file:      currentSrcFile,
 		line:      line,
 		comment:   "",
 		tokenType: token,
 		lexeme:    lexeme,
 	}
-	for _, k := range keywordTable {
-		if lexeme == k {
-			t.tokenType = KEYWORD
-			break
-		}
+	tokenType, ok := keywordTable[lexeme]
+	if ok {
+		t.tokenType = tokenType
 	}
 	return t
 }
@@ -192,11 +194,11 @@ func isOperator(c byte) bool {
 func handleOther(c byte) int {
 	switch c {
 	case '(':
-		token = LEFTPAREN
+		token = LPAREN
 	case ')':
-		token = RIGHTPAREN
+		token = RPAREN
 	case ';':
-		token = SEMICOLON
+		token = SEMI
 	default:
 	}
 	tokenBegin = rdPos
@@ -411,4 +413,5 @@ func readFile(srcFile string) {
 		panic(err)
 	}
 	fileBuf = buf
+	currentSrcFile = srcFile
 }
