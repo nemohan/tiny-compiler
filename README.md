@@ -6,3 +6,8 @@ phase 1: complete the scanner
 phase 2: complete the parser
 
 now we are in phase 2
+
+run:
+    ./build.sh
+
+    tinycc -c ./test/test.ty
