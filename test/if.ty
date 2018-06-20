@@ -1,0 +1,9 @@
+{ Sample programe
+    in tiny language -
+        computes factorial
+}
+
+read x; {input an integer}
+if 0 < x then {don't compute if x <= 0}
+    fact := 1;
+end
