@@ -108,7 +108,7 @@ var keywordTable = []string{
 }
 
 func init() {
-	buf, err := ioutil.ReadFile("test.ty")
+	buf, err := ioutil.ReadFile("if.ty")
 	if err != nil {
 		panic(err)
 	}
@@ -401,5 +401,6 @@ func dumpWithoutLine() {
 
 func main() {
 	//dumpWithoutLine()
-	dumpWithLine()
+	//dumpWithLine()
+	Parse()
 }
