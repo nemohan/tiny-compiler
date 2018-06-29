@@ -1,0 +1,18 @@
+#context-free grammer in EBNF
+#nonterminal begin with uppercase letter
+#terminal beigin with lowercase letter
+Program     -> Stmt-sequence
+Stmt-sequence -> Statement { ;Statement }
+Statement   -> If-stmt | Repeat-stmt | Assign-stmt | Read-stmt | Write-stmt
+If-stmt     -> if Exp then Stmt-sequence [ else Stmt-squence ] end
+Repeat-stmt -> repeat Stmt-sequence until Exp
+Assign-stmt -> identifier := Exp
+Read-stmt   -> read identifier
+Write-stmt  -> write Exp
+Exp         -> Simple-exp [ Comparison-op Simple-exp ]
+Comparison-op -> < | =
+Simple-exp  -> Term { Addop Term }
+Addop       -> + | -
+Term        -> Factor { Mulop Factor }
+Mulop       -> * | /
+Factor      -> ( Exp ) | Number | identifier

@@ -20,6 +20,23 @@ const (
 	RIGHTPAREN
 	SEMICOLON
 	ASSIGN
+	tokenEOF
+)
+
+const (
+	tokenKeyWord    = KEYWORD
+	tokenId         = ID
+	tokenNumber     = NUMBER
+	tokenAdd        = ADD
+	tokenMinus      = MINUS
+	tokenMultiply   = MULTIPLY   // *
+	tokenDiv        = DIV        // \
+	tokenEqual      = EQUAL      // =
+	tokenLess       = LESS       // <
+	tokenLeftParen  = LEFTPAREN  // (
+	tokenRightParen = RIGHTPAREN // )
+	tokenSemicolon  = SEMICOLON  // ;
+	tokenAssign     = ASSIGN     // :=
 )
 
 const (
@@ -60,7 +77,7 @@ var operatorTable = map[byte]int{'+': ADD, '-': MINUS, '*': MULTIPLY,
 var lineBuf = bytes.NewBuffer([]byte(""))
 var lineBegin = 0
 var lineEnd = 0
-var symbolTable = make(map[int][]tokenSymbol)
+var symbolTable = make(map[int][]*tokenSymbol)
 var tokenTable = map[int]string{
 	KEYWORD:    "keyword",
 	ID:         "id",
@@ -76,7 +93,19 @@ var tokenTable = map[int]string{
 	SEMICOLON:  "semicolon",
 	ASSIGN:     "assign",
 }
+
 var token int
+
+var keywordTable = []string{
+	"if",
+	"read",
+	"write",
+	"until",
+	"then",
+	"else",
+	"repeat",
+	"end",
+}
 
 func init() {
 	buf, err := ioutil.ReadFile("test.ty")
@@ -84,9 +113,29 @@ func init() {
 		panic(err)
 	}
 	fileBuf = buf
+	fmt.Printf("%c\n", fileBuf[len(buf)-1])
 }
 
-func GetToken() int {
+func newToken() *tokenSymbol {
+	t := &tokenSymbol{
+		file:      "test.ty",
+		line:      line,
+		comment:   "",
+		tokenType: token,
+		lexeme:    lexeme,
+	}
+	for _, k := range keywordTable {
+		if lexeme == k {
+			t.tokenType = KEYWORD
+			break
+		}
+	}
+	return t
+}
+
+//func GetToken() int {
+func GetToken() *tokenSymbol {
+	lexeme = ""
 	size := len(fileBuf)
 	for i := rdPos; i < size; {
 		rdPos = i
@@ -108,13 +157,16 @@ func GetToken() int {
 			currentState = handleOther(c)
 		case stateDone:
 			currentState = stateStart
-			return token
+			//return token
+			return newToken()
 		default:
 		}
 		i = rdPos
 		i++
 	}
-	return invalidToken
+	//return invalidToken
+	token = tokenEOF
+	return newToken()
 }
 
 func handleOperator(c byte) int {
@@ -138,8 +190,11 @@ func isOperator(c byte) bool {
 func handleOther(c byte) int {
 	switch c {
 	case '(':
+		token = LEFTPAREN
 	case ')':
+		token = RIGHTPAREN
 	case ';':
+		token = SEMICOLON
 	default:
 	}
 	tokenBegin = rdPos
@@ -218,13 +273,16 @@ func handleNumber(c byte) int {
 	case ')':
 		lexeme = getLexeme(rdPos)
 		putBack()
+		token = NUMBER
 		return stateDone
 	default:
 		if isOperator(c) {
 			lexeme = getLexeme(rdPos)
 			putBack()
+			token = NUMBER
 			return stateDone
 		}
+		//TODO: should continue
 		if !isDigit(c) {
 			return stateErr
 		}
@@ -308,14 +366,17 @@ func isCharacter(c byte) bool {
 }
 
 func dumpWithLine() {
-	for tokenType := GetToken(); tokenType != invalidToken; tokenType = GetToken() {
+	for t := GetToken(); t.tokenType != tokenEOF; t = GetToken() {
 		tokenLine, ok := symbolTable[line]
 		if !ok {
-			tokenLine = make([]tokenSymbol, 0)
+			tokenLine = make([]*tokenSymbol, 0)
 			symbolTable[line] = tokenLine
 		}
-		tokenLine = append(tokenLine, tokenSymbol{lexeme: lexeme, tokenType: tokenType,
-			line: line})
+		/*
+			tokenLine = append(tokenLine, tokenSymbol{lexeme: lexeme, tokenType: tokenType,
+				line: line})
+		*/
+		tokenLine = append(tokenLine, t)
 		symbolTable[line] = tokenLine
 	}
 	fmt.Printf("line num:%d sym:%d\n", len(lines), len(symbolTable))
@@ -334,9 +395,9 @@ func dumpWithLine() {
 	}
 }
 func dumpWithoutLine() {
-	for tokenType := GetToken(); tokenType != invalidToken; tokenType = GetToken() {
+	for t := GetToken(); t.tokenType != tokenEOF; t = GetToken() {
 		fmt.Printf("line:%-4d token:[%-10s] \tlexeme:%-8v\n",
-			line, tokenTable[tokenType], lexeme)
+			t.line, tokenTable[t.tokenType], t.lexeme)
 	}
 
 }
