@@ -133,7 +133,6 @@ func newToken() *tokenSymbol {
 	return t
 }
 
-//func GetToken() int {
 func GetToken() *tokenSymbol {
 	lexeme = ""
 	size := len(fileBuf)
@@ -157,14 +156,12 @@ func GetToken() *tokenSymbol {
 			currentState = handleOther(c)
 		case stateDone:
 			currentState = stateStart
-			//return token
 			return newToken()
 		default:
 		}
 		i = rdPos
 		i++
 	}
-	//return invalidToken
 	token = tokenEOF
 	return newToken()
 }
