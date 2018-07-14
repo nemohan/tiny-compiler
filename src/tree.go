@@ -16,6 +16,11 @@ type SyntaxTree struct {
 	height   int
 }
 
+type traverseProc func(*SyntaxTree)
+
+func emptyTraverseProc(node *SyntaxTree) {
+
+}
 func NewSyntaxTree(token *tokenSymbol, nodeKind int) *SyntaxTree {
 	return &SyntaxTree{
 		nodeKind: nodeKind,
@@ -90,6 +95,17 @@ func dfsTraverse(node *SyntaxTree) {
 		node.nodeKind, height, tokenStr)
 	dfsTraverse(node.child)
 	dfsTraverse(node.slibling)
+}
+
+func GenTraverse(root *SyntaxTree, preProc, postProc traverseProc) {
+	if root == nil {
+		return
+	}
+	preProc(root)
+	for next := root.child; next != nil; next = next.slibling {
+		GenTraverse(next, preProc, postProc)
+	}
+	postProc(root)
 }
 
 func (st *SyntaxTree) Traverse() {

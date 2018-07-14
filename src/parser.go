@@ -43,12 +43,13 @@ const (
 var currentToken *tokenSymbol
 var parseErr error
 
-func Parse() {
+func Parse() *SyntaxTree {
 	currentToken = GetToken()
 	astRoot := NewSyntaxTree(nil, fileK)
 	parseStmtSequence(astRoot)
 	astRoot.Traverse()
 	astRoot.DFSTraverse()
+	return astRoot
 }
 
 func parseStmtSequence(root *SyntaxTree) *SyntaxTree {

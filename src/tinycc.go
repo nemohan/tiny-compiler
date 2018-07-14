@@ -17,5 +17,8 @@ func main() {
 	//dumpWithoutLine()
 	//dumpWithLine()
 	readFile(sourceFile)
-	Parse()
+	ast := Parse()
+	Analysis(ast)
+	DumpSymbolTable()
+
 }

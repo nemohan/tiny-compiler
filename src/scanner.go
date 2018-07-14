@@ -81,7 +81,6 @@ var tokenBegin int
 var tokenEnd int
 var next int
 
-//var symbolTable map[int]string
 var line = 1
 var rdPos int
 var lexeme string
@@ -93,7 +92,7 @@ var operatorTable = map[byte]int{'+': ADD, '-': MINUS, '*': MULTIPLY,
 var lineBuf = bytes.NewBuffer([]byte(""))
 var lineBegin = 0
 var lineEnd = 0
-var symbolTable = make(map[int][]*tokenSymbol)
+var internalTokenTable = make(map[int][]*tokenSymbol)
 var tokenTable = map[int]string{
 	KEYWORD:  "keyword",
 	ID:       "id",
@@ -379,21 +378,21 @@ func isCharacter(c byte) bool {
 
 func dumpWithLine() {
 	for t := GetToken(); t.tokenType != tokenEOF; t = GetToken() {
-		tokenLine, ok := symbolTable[line]
+		tokenLine, ok := internalTokenTable[line]
 		if !ok {
 			tokenLine = make([]*tokenSymbol, 0)
-			symbolTable[line] = tokenLine
+			internalTokenTable[line] = tokenLine
 		}
 		/*
 			tokenLine = append(tokenLine, tokenSymbol{lexeme: lexeme, tokenType: tokenType,
 				line: line})
 		*/
 		tokenLine = append(tokenLine, t)
-		symbolTable[line] = tokenLine
+		internalTokenTable[line] = tokenLine
 	}
-	fmt.Printf("line num:%d sym:%d\n", len(lines), len(symbolTable))
+	fmt.Printf("line num:%d sym:%d\n", len(lines), len(internalTokenTable))
 	for lineNum, pos := range lines {
-		lexemes, ok := symbolTable[lineNum+1]
+		lexemes, ok := internalTokenTable[lineNum+1]
 		if !ok {
 			continue
 		}
