@@ -17,7 +17,8 @@ const (
 
 //NodeKind
 const (
-	stmtK = iota
+	nodeNone = iota
+	stmtK
 	expK
 	fileK
 )
@@ -64,7 +65,7 @@ func parseStmtSequence(root *SyntaxTree) *SyntaxTree {
 				parseErr = errors.New(" tokenAssign")
 				return tree
 			}
-			assignTree := NewSyntaxTree(lastToken, expK)
+			assignTree := NewSyntaxTree(lastToken, stmtK)
 			assignTree.AddLeftChild(left)
 			right := parseAssignStmt()
 			assignTree.AddRightChild(right)

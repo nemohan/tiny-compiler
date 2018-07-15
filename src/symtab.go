@@ -45,11 +45,11 @@ func delSym() {
 func DumpSymbolTable() {
 	fmt.Printf("variable\tName\tLocation\tLine\n")
 	for name, s := range symbolTable {
-		fmt.Printf("%s %d ", name, s.location)
+		fmt.Printf("%s\t%d ", name, s.location)
 		l := table[name]
 		for e := l.Front(); e != nil; e = e.Next() {
 			sym := e.Value.(*symbol)
-			fmt.Printf("%d ", sym.line)
+			fmt.Printf("\t%d ", sym.line)
 		}
 		fmt.Printf("\n")
 	}
@@ -64,4 +64,9 @@ func HandleSymProc(node *SyntaxTree) {
 
 func Analysis(node *SyntaxTree) {
 	GenTraverse(node, HandleSymProc, emptyTraverseProc)
+	GenTraverse(node, emptyTraverseProc, checkType)
+	GenTraverse(node, emptyTraverseProc, printTraverseProc)
+	if isAnyTypeErr() {
+		dumpTypeErr()
+	}
 }

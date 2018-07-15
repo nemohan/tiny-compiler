@@ -18,8 +18,14 @@ type SyntaxTree struct {
 
 type traverseProc func(*SyntaxTree)
 
-func emptyTraverseProc(node *SyntaxTree) {
+func printTraverseProc(node *SyntaxTree) {
+	if node.token == nil {
+		return
+	}
+	fmt.Printf("lexeme: %s\n", node.token.lexeme)
+}
 
+func emptyTraverseProc(node *SyntaxTree) {
 }
 func NewSyntaxTree(token *tokenSymbol, nodeKind int) *SyntaxTree {
 	return &SyntaxTree{
@@ -112,6 +118,7 @@ func (st *SyntaxTree) Traverse() {
 	queue := []*SyntaxTree{st}
 	traverse(queue)
 }
+
 func traverse(queue []*SyntaxTree) {
 	if len(queue) == 0 {
 		return
