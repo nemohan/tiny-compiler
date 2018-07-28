@@ -22,7 +22,7 @@ func printTraverseProc(node *SyntaxTree) {
 	if node.token == nil {
 		return
 	}
-	fmt.Printf("lexeme: %s\n", node.token.lexeme)
+	Logf("lexeme: %s\n", node.token.lexeme)
 }
 
 func emptyTraverseProc(node *SyntaxTree) {
@@ -97,7 +97,7 @@ func dfsTraverse(node *SyntaxTree) {
 		tokenStr = node.token.SimpleStr()
 	}
 	height := node.height
-	fmt.Printf("%s node:%d height:%d %s\n", tabNum(height),
+	Logf("%s node:%d height:%d %s\n", tabNum(height),
 		node.nodeKind, height, tokenStr)
 	dfsTraverse(node.child)
 	dfsTraverse(node.slibling)
@@ -125,7 +125,7 @@ func traverse(queue []*SyntaxTree) {
 	}
 	node := queue[0]
 	queue = append(queue[:0], queue[1:]...)
-	fmt.Printf("kind:%d     token:%v height:%d\n", node.nodeKind, node.token, node.height)
+	Logf("kind:%d     token:%v height:%d\n", node.nodeKind, node.token, node.height)
 	next := node.child
 	for ; next != nil; next = next.slibling {
 		next.height = node.height + 1

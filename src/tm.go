@@ -5,6 +5,8 @@ import (
 	"os"
 )
 
+var enableTrace = false
+
 func load(file string) {
 	readFile(file)
 	ast := Parse()
@@ -21,6 +23,7 @@ func usage() {
 	fmt.Printf("\tload(file) \tload a tiny source file\n")
 	fmt.Printf("\texit  \texit tiny machine\n")
 	fmt.Printf("\trun  \trun loaded file\n")
+	fmt.Printf("\tdebug \t enable generate compile trace file\n")
 }
 
 func parseInput(in string) {
@@ -44,6 +47,9 @@ func loop() {
 		}
 		if cmd == "load" {
 
+		}
+		if cmd == "debug" {
+			initTrace()
 		}
 		fmt.Printf("tm->:%s\n", cmd)
 	}

@@ -2,7 +2,6 @@ package main
 
 import (
 	"container/list"
-	"fmt"
 )
 
 type symbol struct {
@@ -47,15 +46,15 @@ func delSym() {
 }
 
 func DumpSymbolTable() {
-	fmt.Printf("variable\tName\tLocation\tLine\n")
+	Logf("variable\tName\tLocation\tLine\n")
 	for name, s := range symbolTable {
-		fmt.Printf("%s\t%d ", name, s.location)
+		Logf("%s\t%d ", name, s.location)
 		l := table[name]
 		for e := l.Front(); e != nil; e = e.Next() {
 			sym := e.Value.(*symbol)
-			fmt.Printf("\t%d ", sym.line)
+			Logf("\t%d ", sym.line)
 		}
-		fmt.Printf("\n")
+		Logf("\n")
 	}
 }
 

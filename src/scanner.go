@@ -390,7 +390,7 @@ func dumpWithLine() {
 		tokenLine = append(tokenLine, t)
 		internalTokenTable[line] = tokenLine
 	}
-	fmt.Printf("line num:%d sym:%d\n", len(lines), len(internalTokenTable))
+	Logf("line num:%d sym:%d\n", len(lines), len(internalTokenTable))
 	for lineNum, pos := range lines {
 		lexemes, ok := internalTokenTable[lineNum+1]
 		if !ok {
@@ -398,23 +398,23 @@ func dumpWithLine() {
 		}
 		begin := pos & 0xffff
 		end := (pos >> 16) & 0xffff
-		fmt.Printf("\n[line:%d %s]\n", lineNum+1, string(fileBuf[begin:end]))
+		Logf("\n[line:%d %s]\n", lineNum+1, string(fileBuf[begin:end]))
 		for _, l := range lexemes {
-			fmt.Printf("line:%-4d token:[%-10s] \tlexeme:%-8v\n",
+			Logf("line:%-4d token:[%-10s] \tlexeme:%-8v\n",
 				l.line, tokenTable[l.tokenType], l.lexeme)
 		}
 	}
 }
 func dumpWithoutLine() {
 	for t := GetToken(); t.tokenType != tokenEOF; t = GetToken() {
-		fmt.Printf("line:%-4d token:[%-10s] \tlexeme:%-8v\n",
+		Logf("line:%-4d token:[%-10s] \tlexeme:%-8v\n",
 			t.line, tokenTable[t.tokenType], t.lexeme)
 	}
 
 }
 
 func readFile(srcFile string) {
-	fmt.Printf("parse source file:%s\n", srcFile)
+	Logf("parse source file:%s\n", srcFile)
 	buf, err := ioutil.ReadFile(srcFile)
 	if err != nil {
 		panic(err)

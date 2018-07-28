@@ -112,16 +112,18 @@ func genStmt(node *SyntaxTree) {
 		emitROCode(opIn, r1, regNone, regNone)
 		emitRMCode(opSt, r1, r5, offset)
 	case writeK:
+		genExp(node)
+		emitROCode(opOut, r0, regNone, regNone)
 	}
 }
 
 func genAssign(node *SyntaxTree) {
 	offset := enterDMem(node.child)
 	// lda r0, offfset(r5)
-	//emitRMCode(opLda, r0, r5, offset)
 	for next := node.child.slibling; next != nil; next = next.slibling {
 		genExp(next)
 	}
+	emitRMCode(opLda, r0, r5, offset)
 }
 
 func genExp(node *SyntaxTree) {
