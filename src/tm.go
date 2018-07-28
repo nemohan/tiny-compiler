@@ -14,7 +14,10 @@ type tmInput struct {
 }
 
 func load(file string) {
-	readFile(file)
+	if err := readFile(file); err != nil {
+		fmt.Printf("%v\n", err)
+		return
+	}
 	ast := Parse()
 	Analysis(ast)
 	DumpSymbolTable()

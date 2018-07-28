@@ -53,11 +53,13 @@ func enableSingleStep() {
 func processor() {
 	for {
 		pc := registers[regPC]
+		Logf("processor, pc:%d begin\n", pc)
 		op := iMem[pc]
 		stop, err := execCode(op)
 		if stop {
 			break
 		}
+		Logf("how\n")
 		if singleStep {
 			<-signalCh
 		}
@@ -66,6 +68,7 @@ func processor() {
 			break
 		}
 		registers[regPC]++
+		Logf("processor, pc:%d\n", registers[regPC])
 	}
 }
 
@@ -87,6 +90,7 @@ func execCode(op *Instruction) (bool, error) {
 	if !ok {
 		return true, fmt.Errorf("not find handler for code:%d %s", code, opTable[code])
 	}
+	Logf("prepare code:%s\n", opTable[code])
 	return handler(op)
 }
 
@@ -101,6 +105,7 @@ func inHandler(op *Instruction) (bool, error) {
 		return false, err
 	}
 	in := 0
+	fmt.Printf("input integer:\n")
 	n, err := fmt.Fscanf(os.Stdin, "%d", &in)
 	if err != nil {
 		return false, fmt.Errorf("invalid input in opcode <in>. num:%d err:%v", n, err)
@@ -165,18 +170,17 @@ func ldcHandler(op *Instruction) (bool, error) {
 }
 
 func stHandler(op *Instruction) (bool, error) {
-	for _, r := range op.regs {
-		if !isValidRegister(r) {
-			return false, fmt.Errorf("invalid register in opcode:%s regs:%v", opTable[op.opcode],
-				op.regs)
-		}
+	if !isValidRegister(op.regs[0]) || !isValidRegister(op.regs[1]) {
+		return false, fmt.Errorf("invalid register in opcode:%s regs:%v", opTable[op.opcode],
+			op.regs)
 	}
 	dstReg := op.regs[1]
 	srcReg := op.regs[0]
 	offset := op.regs[2]
 	addr := registers[dstReg] + offset
-	dMem[addr] = registers[srcReg]
+
 	Logf("exec <st>  store:%d to:%d in dmem\n", registers[srcReg], addr)
+	dMem[addr] = registers[srcReg]
 	return false, nil
 }
 

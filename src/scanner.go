@@ -413,12 +413,13 @@ func dumpWithoutLine() {
 
 }
 
-func readFile(srcFile string) {
+func readFile(srcFile string) error {
 	Logf("parse source file:%s\n", srcFile)
 	buf, err := ioutil.ReadFile(srcFile)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	fileBuf = buf
 	currentSrcFile = srcFile
+	return nil
 }

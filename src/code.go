@@ -83,7 +83,7 @@ const dMemSize = 1024
 
 var registers = make([]int, regNum)
 var iMem = make([]*Instruction, 0, iMemSize)
-var dMem = make([]int, 0, dMemSize)
+var dMem = make([]int, dMemSize, dMemSize)
 var currentDMemPos = 0
 
 func GenCode(root *SyntaxTree) {
@@ -192,6 +192,10 @@ func emitRMCode(opcode int, dstReg, srcReg int, offset int) {
 	op := &Instruction{
 		opcode: opcode,
 	}
+	op.regs = append(op.regs, dstReg)
+	op.regs = append(op.regs, srcReg)
+	op.regs = append(op.regs, offset)
+
 	iMem = append(iMem, op)
 	Logf("emit rmcode:%5s %-s, %-d(%s)\n", opTable[opcode], regTable[dstReg],
 		offset, regTable[srcReg])
@@ -210,6 +214,7 @@ func dumpInstructions() {
 		}
 		Logf("%s\n", opTable[v.opcode])
 	}
+	Logf("exit==================\n")
 }
 
 func dumpDataMem() {
