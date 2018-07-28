@@ -72,8 +72,9 @@ var regTable = map[int]string{
 }
 
 type Instruction struct {
-	opcode int
-	regs   []int
+	opcode  int
+	regs    []int
+	handler func(*Instruction) (bool, error)
 }
 
 const regNum = 8
@@ -84,6 +85,11 @@ var registers = make([]int, regNum)
 var iMem = make([]*Instruction, iMemSize)
 var dMem = make([]int, dMemSize)
 var currentDMemPos = 0
+
+func GenCode(root *SyntaxTree) {
+	genCode(root)
+	emitROCode(opHalt, regNone, regNone, regNone)
+}
 
 func genCode(root *SyntaxTree) {
 	if root == nil {

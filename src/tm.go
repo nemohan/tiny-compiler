@@ -18,7 +18,7 @@ func load(file string) {
 	ast := Parse()
 	Analysis(ast)
 	DumpSymbolTable()
-	genCode(ast)
+	GenCode(ast)
 	dumpInstructions()
 }
 
