@@ -1,0 +1,3 @@
+read a;
+b := a + 5;
+write b;

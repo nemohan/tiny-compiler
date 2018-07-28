@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-var logFile = "trace.log"
+var logFile = "log"
 var logFileHandle *os.File
 
 func initTrace() {

@@ -27,11 +27,15 @@ func printTraverseProc(node *SyntaxTree) {
 
 func emptyTraverseProc(node *SyntaxTree) {
 }
-func NewSyntaxTree(token *tokenSymbol, nodeKind int) *SyntaxTree {
-	return &SyntaxTree{
+func NewSyntaxTree(token *tokenSymbol, nodeKind int, kind int) *SyntaxTree {
+	node := &SyntaxTree{
 		nodeKind: nodeKind,
 		token:    token,
 	}
+	if nodeKind == stmtK {
+		node.stmtKind = kind
+	}
+	return node
 }
 
 func (st *SyntaxTree) AddSlibling(node *SyntaxTree) {

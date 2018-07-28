@@ -55,19 +55,20 @@ const (
 	r4
 	r5
 	r6
-	regPc
+	regPC
 	regNone
 )
 
 var regTable = map[int]string{
-	r0:    "r0",
-	r1:    "r1",
-	r2:    "r2",
-	r3:    "r3",
-	r4:    "r4",
-	r5:    "r5",
-	r6:    "r6",
-	regPC: "pc",
+	r0:      "r0",
+	r1:      "r1",
+	r2:      "r2",
+	r3:      "r3",
+	r4:      "r4",
+	r5:      "r5",
+	r6:      "r6",
+	regPC:   "pc",
+	regNone: "regNone",
 }
 
 type Instruction struct {
@@ -85,6 +86,9 @@ var dMem = make([]int, dMemSize)
 var currentDMemPos = 0
 
 func genCode(root *SyntaxTree) {
+	if root == nil {
+		return
+	}
 	node := root
 	if root.nodeKind == fileK {
 		node = root.child
@@ -93,7 +97,11 @@ func genCode(root *SyntaxTree) {
 		genStmt(node)
 	}
 	if node.nodeKind == expK {
-		genExp(k)
+		Logf("gen exp\n")
+		genExp(node)
+	}
+	for next := node.slibling; next != nil; next = next.slibling {
+		genCode(next)
 	}
 }
 
@@ -104,11 +112,7 @@ func genStmt(node *SyntaxTree) {
 	case assignK:
 		genAssign(node)
 	case readK:
-		// read a;
-		// lda r0, offset(r5)
-		// in r1
-		// st r1, offset(r5)
-		offset := enterDMem(node.child)
+		offset := findSym(node.child.token.lexeme)
 		emitROCode(opIn, r1, regNone, regNone)
 		emitRMCode(opSt, r1, r5, offset)
 	case writeK:
@@ -118,12 +122,11 @@ func genStmt(node *SyntaxTree) {
 }
 
 func genAssign(node *SyntaxTree) {
-	offset := enterDMem(node.child)
-	// lda r0, offfset(r5)
+	offset := findSym(node.child.token.lexeme)
 	for next := node.child.slibling; next != nil; next = next.slibling {
 		genExp(next)
 	}
-	emitRMCode(opLda, r0, r5, offset)
+	emitRMCode(opSt, r0, r5, offset)
 }
 
 func genExp(node *SyntaxTree) {
@@ -137,22 +140,16 @@ func genExp(node *SyntaxTree) {
 		for next := child.slibling; next != nil; next = next.slibling {
 			genExp(next)
 		}
-		emitROCode(op, opAdd, r0, r1)
-		/*
-			child := node.child
-			offset := findSym(child.token.lexeme)
-			emitRMCode(opLd, r0, r5, offset)
-			genExp(child.slibling)
-			emitROCode(opAdd, r0, r0, r1)
-		*/
+		emitROCode(opAdd, r0, r1, r0)
 	case tokenMinus:
-	case tokenMutiply:
+	case tokenMultiply:
 	case tokenDiv:
 	case tokenId:
-		offset := findSym(child.token.lexeme)
+		offset := findSym(node.token.lexeme)
 		emitRMCode(opLd, r0, r5, offset)
 	case tokenNumber:
-		emitRMCode(opLdc, r1, strToInt(node.token.lexeme), regNone)
+		//emitRMCode(opLdc, r1, strToInt(node.token.lexeme), regNone)
+		emitRMCode(opLdc, r1, regNone, strToInt(node.token.lexeme))
 	}
 }
 
@@ -181,6 +178,8 @@ func emitROCode(opcode int, dstReg, srcReg, srcReg2 int) {
 	op.regs = append(op.regs, srcReg)
 	op.regs = append(op.regs, srcReg2)
 	iMem = append(iMem, op)
+	Logf("emit rocode:%5s %-s, %-s, %-s\n", opTable[opcode], regTable[dstReg],
+		regTable[srcReg], regTable[srcReg2])
 }
 
 func emitRMCode(opcode int, dstReg, srcReg int, offset int) {
@@ -188,17 +187,22 @@ func emitRMCode(opcode int, dstReg, srcReg int, offset int) {
 		opcode: opcode,
 	}
 	iMem = append(iMem, op)
+	Logf("emit rmcode:%5s %-s, %-d(%s)\n", opTable[opcode], regTable[dstReg],
+		offset, regTable[srcReg])
 }
 
 func dumpRegister() {
 	for i, v := range registers {
-		fmt.Printf("reg:%s %d\n", regTable[i], v)
+		Logf("reg:%s %d\n", regTable[i], v)
 	}
 }
 
-func dumpInstrucions() {
-	for i, v := range iMem {
-		fmt.Printf("%s\n", opTable[v.opcode])
+func dumpInstructions() {
+	for _, v := range iMem {
+		if v == nil {
+			break
+		}
+		Logf("%s\n", opTable[v.opcode])
 	}
 }
 

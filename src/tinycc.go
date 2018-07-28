@@ -27,4 +27,8 @@ func main() {
 	Analysis(ast)
 	DumpSymbolTable()
 
+	Logf("\ngenerated code ==================\n")
+	genCode(ast)
+	dumpInstructions()
+
 }
