@@ -34,8 +34,12 @@ func insertSym(name string, line int) {
 	table[name] = l
 }
 
-func findSym() {
-
+func findSym(name string) int {
+	s, ok := symbolTable[name]
+	if !ok {
+		panic(name)
+	}
+	return s.location
 }
 
 func delSym() {

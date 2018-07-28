@@ -60,13 +60,11 @@ func checkStmt(node *SyntaxTree) {
 			addErr(t, err)
 		}
 	case tokenWrite:
-		fmt.Printf("------------ write child type:%d\n", childType)
 		if childType != typeInt {
 			err := errors.New("can't not use bool type in write statement, expect int type")
 			addErr(t, err)
 		}
 	case tokenAssign:
-		fmt.Printf("------------child type:%d\n", childType)
 		if childType != node.child.slibling.expType {
 			err := errors.New("can't not use bool type in assign statement, expect int type")
 			addErr(t, err)
@@ -122,7 +120,7 @@ func checkType(node *SyntaxTree) {
 	if t == nil {
 		return
 	}
-	fmt.Printf("chedk stmt:%s kind:%d==============\n", t.lexeme, node.nodeKind)
+	//fmt.Printf("chedk stmt:%s kind:%d==============\n", t.lexeme, node.nodeKind)
 	if node.nodeKind == stmtK {
 		checkStmt(node)
 		return
