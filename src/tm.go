@@ -20,6 +20,8 @@ func load(file string) {
 	DumpSymbolTable()
 	GenCode(ast)
 	dumpInstructions()
+	initEngine()
+	processor()
 }
 
 func main() {
@@ -69,6 +71,7 @@ func loop() {
 		if cmd == "debug" {
 			enableTrace = true
 			initTrace()
+			continue
 		}
 		fmt.Printf("tm->:%s\n", cmd)
 	}

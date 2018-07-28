@@ -82,8 +82,8 @@ const iMemSize = 1024
 const dMemSize = 1024
 
 var registers = make([]int, regNum)
-var iMem = make([]*Instruction, iMemSize)
-var dMem = make([]int, dMemSize)
+var iMem = make([]*Instruction, 0, iMemSize)
+var dMem = make([]int, 0, dMemSize)
 var currentDMemPos = 0
 
 func GenCode(root *SyntaxTree) {
@@ -205,7 +205,7 @@ func dumpRegister() {
 
 func dumpInstructions() {
 	for _, v := range iMem {
-		if v == nil {
+		if v == nil || v.opcode == opHalt {
 			break
 		}
 		Logf("%s\n", opTable[v.opcode])

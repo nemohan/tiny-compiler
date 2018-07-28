@@ -5,5 +5,5 @@ go build tinycc.go scanner.go parser.go tree.go symtab.go \
 
 echo "build tiny machine"
 go build tm.go scanner.go parser.go tree.go symtab.go \
-    semantic.go code.go trace.go
+    semantic.go code.go trace.go engine.go
 
