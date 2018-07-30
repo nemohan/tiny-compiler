@@ -6,6 +6,7 @@ import (
 	"os"
 )
 
+var advancePC = true
 var singleStep = false
 var signalCh = make(chan int, 1)
 var opcodeHandlerTable = map[int]func(*Instruction) (bool, error){
@@ -67,7 +68,10 @@ func processor() {
 			Logf("processor error:%v\n", err)
 			break
 		}
-		registers[regPC]++
+		if advancePC {
+			registers[regPC]++
+		}
+		advancePC = true
 		Logf("processor, pc:%d\n", registers[regPC])
 	}
 }
@@ -110,6 +114,7 @@ func jltHandler(op *Instruction) (bool, error) {
 		Logf("jlt jump to addr:%d\n", op.regs[2])
 		registers[regPC] = op.regs[2]
 	}
+	advancePC = false
 	return false, nil
 }
 
