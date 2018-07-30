@@ -14,19 +14,19 @@ var opcodeHandlerTable = map[int]func(*Instruction) (bool, error){
 	opIn:   inHandler,
 	opOut:  outHandler,
 	opAdd:  addHandler,
-	opSub:  emptyHandler,
+	opSub:  subHandler,
 	opMul:  emptyHandler,
 	opDiv:  divHandler,
 	opLd:   ldHandler,
 	opLda:  ldaHandler,
 	opLdc:  ldcHandler,
 	opSt:   stHandler,
-	opJlt:  emptyHandler,
+	opJlt:  jltHandler,
 	opJle:  emptyHandler,
 	opJge:  emptyHandler,
 	opJgt:  emptyHandler,
-	opJEQ:  emptyHandler,
-	opJNE:  emptyHandler,
+	opJeq:  emptyHandler,
+	opJne:  emptyHandler,
 }
 
 //initEngine, init all registers, instruction memory and data memory
@@ -57,9 +57,9 @@ func processor() {
 		op := iMem[pc]
 		stop, err := execCode(op)
 		if stop {
+			Logf("processor stop. %v\n", err)
 			break
 		}
-		Logf("how\n")
 		if singleStep {
 			<-signalCh
 		}
@@ -96,6 +96,21 @@ func execCode(op *Instruction) (bool, error) {
 
 func haltHandler(op *Instruction) (bool, error) {
 	return true, nil
+}
+
+func jltHandler(op *Instruction) (bool, error) {
+	//NOTE: absolute address
+	r := op.regs[0]
+	if !isValidRegister(r) {
+		err := fmt.Errorf("invalid reg:%d in opcode <in> regs:%v", r, op.regs)
+		return false, err
+	}
+	res := registers[r]
+	if res < 0 {
+		Logf("jlt jump to addr:%d\n", op.regs[2])
+		registers[regPC] = op.regs[2]
+	}
+	return false, nil
 }
 
 func inHandler(op *Instruction) (bool, error) {
@@ -185,6 +200,14 @@ func stHandler(op *Instruction) (bool, error) {
 }
 
 func divHandler(op *Instruction) (bool, error) {
+	return false, nil
+}
+
+func subHandler(op *Instruction) (bool, error) {
+	dstReg := op.regs[0]
+	srcReg := op.regs[1]
+
+	registers[dstReg] = registers[dstReg] - registers[srcReg]
 	return false, nil
 }
 

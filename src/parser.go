@@ -47,11 +47,88 @@ var parseErr error
 
 func Parse() *SyntaxTree {
 	currentToken = GetToken()
+	/*
+		astRoot := NewSyntaxTree(nil, fileK, voidK)
+		parseStmtSequence(astRoot)
+	*/
 	astRoot := NewSyntaxTree(nil, fileK, voidK)
-	parseStmtSequence(astRoot)
+	child := parseStmtSeq()
+	astRoot.AddLeftChild(child)
 	astRoot.Traverse()
 	astRoot.DFSTraverse()
 	return astRoot
+}
+
+func parseStmtSeq() *SyntaxTree {
+	//for parseErr == nil && currentToken.tokenType != tokenEof {
+	if parseErr != nil {
+		return nil
+	}
+	switch currentToken.tokenType {
+	case tokenId:
+		left := NewSyntaxTree(currentToken, expK, idK)
+		match(tokenId)
+		lastToken := currentToken
+		if !match(tokenAssign) {
+			parseErr = errors.New(" tokenAssign")
+			//return tree
+			return nil
+		}
+		assignTree := NewSyntaxTree(lastToken, stmtK, assignK)
+		assignTree.AddLeftChild(left)
+		right := parseAssignStmt()
+		assignTree.AddRightChild(right)
+		//root.AddChild(assignTree)
+		//assignTree.Traverse()
+		//don't care match or not
+		match(tokenSemi)
+		assignTree.AddSlibling(parseStmtSeq())
+		return assignTree
+	case tokenIf:
+		lastToken := currentToken
+		//TODO: error
+		match(tokenIf)
+		ifTree := NewSyntaxTree(lastToken, stmtK, ifK)
+		ifTree.AddLeftChild(parseIfStmt())
+		//root.AddChild(ifTree)
+		//TODO: semicolone should not follow if-stmt
+		match(tokenSemi)
+		ifTree.AddSlibling(parseStmtSeq())
+		return ifTree
+	case tokenRead:
+		lastToken := currentToken
+		match(tokenRead)
+		readTree := NewSyntaxTree(lastToken, stmtK, readK)
+		readTree.AddLeftChild(parseReadStmt())
+		//root.AddChild(readTree)
+		match(tokenSemi)
+		readTree.AddSlibling(parseStmtSeq())
+		return readTree
+	case tokenRepeat:
+		lastToken := currentToken
+		match(tokenRepeat)
+		repeatTree := NewSyntaxTree(lastToken, stmtK, repeatK)
+		//root.AddChild(repeatTree)
+		parseRepeatStmt(repeatTree)
+		repeatTree.AddSlibling(parseStmtSeq())
+		return repeatTree
+	case tokenWrite:
+		lastToken := currentToken
+		match(tokenWrite)
+		writeTree := NewSyntaxTree(lastToken, stmtK, writeK)
+		//root.AddChild(writeTree)
+		writeTree.AddChild(parseWriteStmt())
+		match(tokenSemi)
+		writeTree.AddSlibling(parseStmtSeq())
+		return writeTree
+	case tokenEOF:
+		return nil
+	default:
+		//panic("default parseStmtSeq")
+		return nil
+	}
+	//}
+	return nil
 }
 
 func parseStmtSequence(root *SyntaxTree) *SyntaxTree {
@@ -116,15 +193,18 @@ func parseStmt() {
 
 func parseIfStmt() *SyntaxTree {
 	tree := parseExp()
-	lastToken := currentToken
+	//lastToken := currentToken
 	if !match(tokenThen) {
 		//TODO:
 	}
-	slibling := NewSyntaxTree(lastToken, expK, 0)
-	tree.AddSlibling(slibling)
-	parseStmtSequence(slibling)
-	//slibling.AddLeftChild(child)
-
+	//TODO: don't need then any more, need the body
+	/*
+		slibling := NewSyntaxTree(lastToken, expK, 0)
+		tree.AddSlibling(slibling)
+		parseStmtSequence(slibling)
+	*/
+	thenBody := parseStmtSeq()
+	tree.AddSlibling(thenBody)
 	//optional
 	if match(tokenElse) {
 		parseStmtSequence(nil)

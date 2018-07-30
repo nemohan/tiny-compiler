@@ -21,8 +21,8 @@ const (
 	opJle
 	opJge
 	opJgt
-	opJEQ
-	opJNE
+	opJeq
+	opJne
 )
 
 var opTable = map[int]string{
@@ -42,8 +42,8 @@ var opTable = map[int]string{
 	opJle:  "jle",
 	opJge:  "jge",
 	opJgt:  "jgt",
-	opJEQ:  "jeq",
-	opJNE:  "jne",
+	opJeq:  "jeq",
+	opJne:  "jne",
 }
 
 //registers
@@ -102,6 +102,24 @@ var regM = regManager{
 	},
 }
 
+func isRMCode(code int) bool {
+	rmCodes := map[int]bool{
+		opLd:  true,
+		opLda: true,
+		opLdc: true,
+		opSt:  true,
+		opJlt: true,
+		opJle: true,
+		opJge: true,
+		opJgt: true,
+		opJeq: true,
+		opJne: true,
+	}
+	if _, ok := rmCodes[code]; ok {
+		return true
+	}
+	return false
+}
 func GenCode(root *SyntaxTree) {
 	genCode(root)
 	emitROCode(opHalt, regNone, regNone, regNone)
@@ -157,30 +175,22 @@ func genIf(node *SyntaxTree) {
 	if node.child.token.tokenType == tokenLess {
 		destReg := popUsedReg()
 		pos := emitRMCode(opJlt, destReg, regNone, regNone)
+		//note: we should free destReg now
+		freeReg(destReg)
 		iMemPatches = append(iMemPatches, pos)
 		Logf("need patch at imem location:%d\n", pos)
 	}
 
 	//TODO: if else  and if else if
-	branchNum := 0
-	//patches := make(map[int]int, 0)
-	//patches[branchNum] = pos
+	//TODO: use child and slibling can't distinguish the body part of if and the else part
 	for next := node.child.slibling; next != nil; next = next.slibling {
 		genStmt(next)
-		branchNum++
 		if next.token.tokenType == tokenElse {
 			patchCode()
 		}
 	}
-	if branchNum == 0 {
-		/*
-			pos := len(iMemPatches)
-			srcPos := iMemPatches[pos]
-			jumpPos := getImemLocation()
-			patchCode(srcPos, jumpPos+1)
-		*/
-		patchCode()
-	}
+
+	patchCode()
 }
 
 func genRepeat(node *SyntaxTree) {
@@ -290,14 +300,19 @@ func getIMemLocation() int {
 	return len(iMem) - 1
 }
 
+func getIMemNextLoc() int {
+	return len(iMem)
+}
+
 //func patchCode(srcPos, dstPos int) {
 func patchCode() {
+	Logf("want patch some code\n")
 	pos := len(iMemPatches)
 	if pos == 0 {
 		return
 	}
-	srcPos := iMemPatches[pos]
-	dstPos := getIMemLocation()
+	srcPos := iMemPatches[pos-1]
+	dstPos := getIMemNextLoc()
 	op := iMem[srcPos]
 	op.regs[2] = dstPos
 	Logf("add patch src pos:%d dst pos:%d\n", srcPos, dstPos)
@@ -312,8 +327,8 @@ func emitROCode(opcode int, dstReg, srcReg, srcReg2 int) int {
 	op.regs = append(op.regs, srcReg)
 	op.regs = append(op.regs, srcReg2)
 	iMem = append(iMem, op)
-	Logf("emit rocode:%5s %-s, %-s, %-s\n", opTable[opcode], regTable[dstReg],
-		regTable[srcReg], regTable[srcReg2])
+	Logf("\t-------addr:%d emit rocode:%5s %-s, %-s, %-s\n", len(iMem)-1, opTable[opcode],
+		regTable[dstReg], regTable[srcReg], regTable[srcReg2])
 	return len(iMem) - 1
 }
 
@@ -326,8 +341,8 @@ func emitRMCode(opcode int, dstReg, srcReg int, offset int) int {
 	op.regs = append(op.regs, offset)
 
 	iMem = append(iMem, op)
-	Logf("emit rmcode:%5s %-s, %-d(%s)\n", opTable[opcode], regTable[dstReg],
-		offset, regTable[srcReg])
+	Logf("\t------addr:%d emit rmcode:%5s %-s, %-d(%s)\n", len(iMem)-1, opTable[opcode],
+		regTable[dstReg], offset, regTable[srcReg])
 	return len(iMem) - 1
 }
 
@@ -393,11 +408,19 @@ func dumpRegister() {
 }
 
 func dumpInstructions() {
-	for _, v := range iMem {
+	for i, v := range iMem {
 		if v == nil || v.opcode == opHalt {
 			break
 		}
-		Logf("%s\n", opTable[v.opcode])
+
+		if isRMCode(v.opcode) {
+			Logf("%d: %s %s, %d(%s)\n", i, opTable[v.opcode], regTable[v.regs[0]],
+				v.regs[2], regTable[v.regs[1]])
+		} else {
+			Logf("%d: %s %s, %s, %s\n", i, opTable[v.opcode], regTable[v.regs[0]],
+				regTable[v.regs[1]], regTable[v.regs[2]])
+		}
+
 	}
 	Logf("exit==================\n")
 }

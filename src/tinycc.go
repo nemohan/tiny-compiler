@@ -28,7 +28,7 @@ func main() {
 	DumpSymbolTable()
 
 	Logf("\ngenerated code ==================\n")
-	GenCode(ast)
-	dumpInstructions()
+	//GenCode(ast)
+	//dumpInstructions()
 
 }
