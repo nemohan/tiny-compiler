@@ -86,10 +86,18 @@ var iMem = make([]*Instruction, 0, iMemSize)
 var dMem = make([]int, dMemSize, dMemSize)
 var currentDMemPos = 0
 
-var lastUsedReg = regNone
-var freeRegs = map[int]bool{
-	r0: true,
-	r1: true,
+type regManager struct {
+	top      int
+	freeRegs map[int]bool
+	usedRegs []int
+}
+
+var regM = regManager{
+	top: -1,
+	freeRegs: map[int]bool{
+		r0: true,
+		r1: true,
+	},
 }
 
 func GenCode(root *SyntaxTree) {
@@ -132,9 +140,11 @@ func genStmt(node *SyntaxTree) {
 		emitRMCode(opSt, dstReg, r5, offset)
 		freeReg(dstReg)
 	case writeK:
-		genExp(node)
-		emitROCode(opOut, lastUsedReg, regNone, regNone)
-		freeReg(lastUsedReg)
+		Logf("gen code for write\n")
+		genExp(node.child)
+		r := popUsedReg()
+		emitROCode(opOut, r, regNone, regNone)
+		freeReg(r)
 	}
 }
 
@@ -151,9 +161,10 @@ func genAssign(node *SyntaxTree) {
 	for next := node.child.slibling; next != nil; next = next.slibling {
 		genExp(next)
 	}
-	dstReg := allocReg()
-	emitRMCode(opSt, r0, r5, offset)
-	freeReg(dstReg)
+	Logf("gen assign\n")
+	lastUsed := popUsedReg()
+	emitRMCode(opSt, lastUsed, r5, offset)
+	freeReg(lastUsed)
 }
 
 func genExpForBinOp(node *SyntaxTree) {
@@ -175,14 +186,19 @@ func genExp(node *SyntaxTree) {
 		for next := child.slibling; next != nil; next = next.slibling {
 			genExp(next)
 		}
-		emitROCode(opAdd, r0, r1, r0)
+		srcReg := popUsedReg()
+		dstReg := popUsedReg()
+		emitROCode(opAdd, dstReg, srcReg, dstReg)
+		freeReg(srcReg)
 	case tokenMinus:
 		child := node.child
 		genExp(child)
 		for next := child.slibling; next != nil; next = next.slibling {
 			genExp(next)
 		}
-		emitROCode(opSub, r0, r1, r0)
+		srcReg := popUsedReg()
+		dstReg := popUsedReg()
+		emitROCode(opSub, dstReg, srcReg, dstReg)
 	case tokenMultiply:
 	case tokenDiv:
 	case tokenLess:
@@ -197,12 +213,14 @@ func genExp(node *SyntaxTree) {
 		emitROCode(opSub, r0, r1, r0)
 
 	case tokenId:
+		dstReg := allocReg()
 		offset := findSym(node.token.lexeme)
-		emitRMCode(opLd, r0, r5, offset)
+		emitRMCode(opLd, dstReg, r5, offset)
 	case tokenNumber:
-		//dstReg := allocReg()
-		emitRMCode(opLdc, r1, regNone, strToInt(node.token.lexeme))
-		//emitRMCode(opLdc, dstReg, regNone, strToInt(node.token.lexeme))
+		dstReg := allocReg()
+		emitRMCode(opLdc, dstReg, regNone, strToInt(node.token.lexeme))
+	default:
+		panic("oops\n")
 	}
 }
 
@@ -248,35 +266,58 @@ func emitRMCode(opcode int, dstReg, srcReg int, offset int) {
 		offset, regTable[srcReg])
 }
 
+func popUsedReg() int {
+	top := regM.top
+	if top < 0 {
+		panic("no more used regs")
+	}
+	Logf("pop at top:%d used:%v\n", top, regM.usedRegs)
+	r := regM.usedRegs[top]
+	regM.top--
+	return r
+}
+
 func freeReg(reg int) {
-	busy := freeRegs[reg]
-	if !busy {
+	free := regM.freeRegs[reg]
+	if free {
 		Logf("double free register:%s\n", regTable[reg])
 		panic("double free register")
 	}
-	if lastUsedReg != reg {
-		Logf("freeing reg:%s don't match last used reg:%s\n", reg, lastUsedReg)
-		panic("reg don't match")
+	Logf("free register:%s top:%d\n", regTable[reg], regM.top)
+	regM.freeRegs[reg] = true
+	if len(regM.usedRegs) == 1 {
+		regM.top = -1
+		regM.usedRegs = append(regM.usedRegs[:0], regM.usedRegs[1:]...)
+		return
 	}
-	freeRegs[reg] = false
+	for i, r := range regM.usedRegs {
+		if r != reg {
+			continue
+		}
+		regM.usedRegs = append(regM.usedRegs[i-1:i], regM.usedRegs[i+1:]...)
+		regM.top = len(regM.usedRegs) - 1
+		break
+	}
+	Logf("after free top:%d\n", regM.top)
 }
 
 func allocReg() int {
 	minReg := regNone
-	for r, busy := range freeRegs {
-		if busy {
+	for r, free := range regM.freeRegs {
+		if !free {
 			continue
 		}
-		if r < regNone {
+		if r < minReg {
 			minReg = r
 		}
 	}
 	if minReg == regNone {
 		panic("no free register\n")
 	}
-	Logf("alloc register:%s\n", regTable[minReg])
-	freeRegs[minReg] = true
-	lastUsedReg = minReg
+	Logf("alloc register:%s top:%d\n", regTable[minReg], regM.top)
+	regM.freeRegs[minReg] = false
+	regM.usedRegs = append(regM.usedRegs, minReg)
+	regM.top++
 	return minReg
 }
 
