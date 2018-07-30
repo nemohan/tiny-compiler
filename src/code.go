@@ -86,6 +86,8 @@ var iMem = make([]*Instruction, 0, iMemSize)
 var dMem = make([]int, dMemSize, dMemSize)
 var currentDMemPos = 0
 
+var iMemPatches = make([]int, 0)
+
 type regManager struct {
 	top      int
 	freeRegs map[int]bool
@@ -149,7 +151,36 @@ func genStmt(node *SyntaxTree) {
 }
 
 func genIf(node *SyntaxTree) {
+	Logf("gen if\n")
+	patchCode()
 	genExp(node.child)
+	if node.child.token.tokenType == tokenLess {
+		destReg := popUsedReg()
+		pos := emitRMCode(opJlt, destReg, regNone, regNone)
+		iMemPatches = append(iMemPatches, pos)
+		Logf("need patch at imem location:%d\n", pos)
+	}
+
+	//TODO: if else  and if else if
+	branchNum := 0
+	//patches := make(map[int]int, 0)
+	//patches[branchNum] = pos
+	for next := node.child.slibling; next != nil; next = next.slibling {
+		genStmt(next)
+		branchNum++
+		if next.token.tokenType == tokenElse {
+			patchCode()
+		}
+	}
+	if branchNum == 0 {
+		/*
+			pos := len(iMemPatches)
+			srcPos := iMemPatches[pos]
+			jumpPos := getImemLocation()
+			patchCode(srcPos, jumpPos+1)
+		*/
+		patchCode()
+	}
 }
 
 func genRepeat(node *SyntaxTree) {
@@ -203,7 +234,11 @@ func genExp(node *SyntaxTree) {
 	case tokenDiv:
 	case tokenLess:
 		genExpForBinOp(node)
-		emitROCode(opSub, r0, r1, r0)
+		srcReg := popUsedReg() //left
+		dstReg := popUsedReg() //right
+		// dstReg = srcReg -dstReg
+		emitROCode(opSub, dstReg, srcReg, dstReg)
+		freeReg(srcReg)
 	case tokenEqual:
 		child := node.child
 		genExp(child)
@@ -224,6 +259,16 @@ func genExp(node *SyntaxTree) {
 	}
 }
 
+func nextSibling(node *SyntaxTree) func() *SyntaxTree {
+	return func() *SyntaxTree {
+		next := node.slibling
+		if next != nil {
+			node = next.slibling
+		}
+		return next
+	}
+}
+
 func strToInt(n string) int {
 	v, err := strconv.ParseInt(n, 10, 64)
 	if err != nil {
@@ -241,7 +286,25 @@ func enterDMem(node *SyntaxTree) int {
 	return oldPos
 }
 
-func emitROCode(opcode int, dstReg, srcReg, srcReg2 int) {
+func getIMemLocation() int {
+	return len(iMem) - 1
+}
+
+//func patchCode(srcPos, dstPos int) {
+func patchCode() {
+	pos := len(iMemPatches)
+	if pos == 0 {
+		return
+	}
+	srcPos := iMemPatches[pos]
+	dstPos := getIMemLocation()
+	op := iMem[srcPos]
+	op.regs[2] = dstPos
+	Logf("add patch src pos:%d dst pos:%d\n", srcPos, dstPos)
+	iMemPatches = append(iMemPatches[:pos-1], iMemPatches[pos:]...)
+}
+
+func emitROCode(opcode int, dstReg, srcReg, srcReg2 int) int {
 	op := &Instruction{
 		opcode: opcode,
 	}
@@ -251,9 +314,10 @@ func emitROCode(opcode int, dstReg, srcReg, srcReg2 int) {
 	iMem = append(iMem, op)
 	Logf("emit rocode:%5s %-s, %-s, %-s\n", opTable[opcode], regTable[dstReg],
 		regTable[srcReg], regTable[srcReg2])
+	return len(iMem) - 1
 }
 
-func emitRMCode(opcode int, dstReg, srcReg int, offset int) {
+func emitRMCode(opcode int, dstReg, srcReg int, offset int) int {
 	op := &Instruction{
 		opcode: opcode,
 	}
@@ -264,6 +328,7 @@ func emitRMCode(opcode int, dstReg, srcReg int, offset int) {
 	iMem = append(iMem, op)
 	Logf("emit rmcode:%5s %-s, %-d(%s)\n", opTable[opcode], regTable[dstReg],
 		offset, regTable[srcReg])
+	return len(iMem) - 1
 }
 
 func popUsedReg() int {
