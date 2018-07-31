@@ -26,7 +26,7 @@ var opcodeHandlerTable = map[int]func(*Instruction) (bool, error){
 	opJle:  emptyHandler,
 	opJge:  emptyHandler,
 	opJgt:  emptyHandler,
-	opJeq:  emptyHandler,
+	opJeq:  jeqHandler,
 	opJne:  emptyHandler,
 	opUjp:  ujpHandler,
 }
@@ -137,6 +137,15 @@ func ujpHandler(op *Instruction) (bool, error) {
 	return false, nil
 }
 
+func jeqHandler(op *Instruction) (bool, error) {
+	if registers[op.regs[0]] == 0 {
+		registers[regPC] = op.regs[2]
+		oldPos := registers[regPC]
+		advancePC = false
+		Logf("jeq from locaton:%d to:%d\n", oldPos, op.regs[2])
+	}
+	return false, nil
+}
 func inHandler(op *Instruction) (bool, error) {
 	reg := op.regs[0]
 	if !isValidRegister(reg) {
