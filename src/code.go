@@ -204,11 +204,19 @@ func genIf(node *SyntaxTree) {
 }
 
 func genRepeat(node *SyntaxTree) {
-
+	location := getIMemNextLoc()
+	genCode(node.Left())
+	right := node.Right()
+	genExp(right)
+	dstReg := popUsedReg()
+	if right.token.tokenType == tokenLess {
+		emitRMCode(opJlt, dstReg, regNone, location)
+	} else if right.token.tokenType == tokenEqual {
+		emitRMCode(opJeq, dstReg, regNone, location)
+	}
 }
 
 func genAssign(node *SyntaxTree) {
-	//offset := findSym(node.child.token.lexeme)
 	left := node.Left()
 	offset := findSym(left.token.lexeme)
 	right := node.Right()
@@ -245,27 +253,22 @@ func genExp(node *SyntaxTree) {
 		dstReg := popUsedReg()
 		emitROCode(opAdd, dstReg, srcReg, dstReg)
 		freeReg(srcReg)
+
 	case tokenMinus:
 		genExp(node.Left())
 		genExp(node.Right())
 		srcReg := popUsedReg()
 		dstReg := popUsedReg()
 		emitROCode(opSub, dstReg, srcReg, dstReg)
+		freeReg(srcReg)
 	case tokenMultiply:
 		genArithmetic(opMul, node)
 	case tokenDiv:
 		genArithmetic(opDiv, node)
 	case tokenLess:
-		genExpForBinOp(node)
-		srcReg := popUsedReg() //left
-		dstReg := popUsedReg() //right
-		emitROCode(opSub, dstReg, srcReg, dstReg)
-		freeReg(srcReg)
+		genArithmetic(opSub, node)
 	case tokenEqual:
-		genExp(node.Left())
-		genExp(node.Right())
-		emitROCode(opSub, r0, r1, r0)
-
+		genArithmetic(opSub, node)
 	case tokenId:
 		dstReg := allocReg()
 		offset := findSym(node.token.lexeme)
