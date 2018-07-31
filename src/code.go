@@ -136,7 +136,6 @@ func genCode(root *SyntaxTree) {
 	}
 	node := root
 	if root.nodeKind == fileK {
-		//node = root.child
 		node = root.childs[0]
 	}
 	if node.nodeKind == stmtK {
@@ -221,13 +220,6 @@ func genAssign(node *SyntaxTree) {
 }
 
 func genExpForBinOp(node *SyntaxTree) {
-	/*
-		child := node.child
-		genExp(node.child)
-		for next := child.slibling; next != nil; next = next.slibling {
-			genExp(next)
-		}
-	*/
 	genExp(node.Left())
 	genExp(node.Right())
 }
@@ -267,17 +259,9 @@ func genExp(node *SyntaxTree) {
 		genExpForBinOp(node)
 		srcReg := popUsedReg() //left
 		dstReg := popUsedReg() //right
-		// dstReg = srcReg -dstReg
 		emitROCode(opSub, dstReg, srcReg, dstReg)
 		freeReg(srcReg)
 	case tokenEqual:
-		/*
-			child := node.child
-			genExp(child)
-			for next := child.slibling; next != nil; next = next.slibling {
-				genExp(next)
-			}
-		*/
 		genExp(node.Left())
 		genExp(node.Right())
 		emitROCode(opSub, r0, r1, r0)
@@ -293,18 +277,6 @@ func genExp(node *SyntaxTree) {
 		panic("oops\n")
 	}
 }
-
-/*
-func nextSibling(node *SyntaxTree) func() *SyntaxTree {
-	return func() *SyntaxTree {
-		next := node.slibling
-		if next != nil {
-			node = next.slibling
-		}
-		return next
-	}
-}
-*/
 
 func strToInt(n string) int {
 	v, err := strconv.ParseInt(n, 10, 64)
