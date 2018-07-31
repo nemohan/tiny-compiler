@@ -197,7 +197,7 @@ func parseExp() *SyntaxTree {
 		node := NewSyntaxTree(currentToken, expK, opK)
 		node.AddChild(expTree)
 		match(tokenEqual)
-		expTree = handleExp(expTree)
+		expTree = handleExp(node)
 		return node
 	default:
 		//panic("parseExp")
