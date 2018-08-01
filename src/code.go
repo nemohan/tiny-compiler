@@ -228,11 +228,6 @@ func genAssign(node *SyntaxTree) {
 	freeReg(lastUsed)
 }
 
-func genExpForBinOp(node *SyntaxTree) {
-	genExp(node.Left())
-	genExp(node.Right())
-}
-
 func genArithmetic(opCode int, node *SyntaxTree) {
 	genExp(node.Left())
 	genExp(node.Right())
@@ -256,10 +251,10 @@ func genExp(node *SyntaxTree) {
 		freeReg(srcReg)
 
 	case tokenMinus:
-		genExp(node.Left())
 		genExp(node.Right())
-		dstReg := popUsedReg()
+		genExp(node.Left())
 		srcReg := popUsedReg()
+		dstReg := popUsedReg()
 		emitROCode(opSub, dstReg, srcReg, dstReg)
 		freeReg(srcReg)
 	case tokenMultiply:
@@ -380,6 +375,7 @@ func freeReg(reg int) {
 		if r != reg {
 			continue
 		}
+		Logf("free reg at:%d num:%d\n", i, len(regM.usedRegs))
 		regM.usedRegs = append(regM.usedRegs[i-1:i], regM.usedRegs[i+1:]...)
 		regM.top = len(regM.usedRegs) - 1
 		break
