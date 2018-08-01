@@ -27,7 +27,7 @@ var opcodeHandlerTable = map[int]func(*Instruction) (bool, error){
 	opJge:  emptyHandler,
 	opJgt:  emptyHandler,
 	opJeq:  jeqHandler,
-	opJne:  emptyHandler,
+	opJne:  jneHandler,
 	opUjp:  ujpHandler,
 }
 
@@ -121,11 +121,10 @@ func jltHandler(op *Instruction) (bool, error) {
 	}
 	res := registers[r]
 	if res < 0 {
-		Logf("jlt jump to addr:%d\n", op.regs[2])
+		Logf("jlt res:%d jump to addr:%d\n", res, op.regs[2])
 		registers[regPC] = op.regs[2]
 		advancePC = false
 	}
-	//advancePC = false
 	return false, nil
 }
 
@@ -146,6 +145,17 @@ func jeqHandler(op *Instruction) (bool, error) {
 	}
 	return false, nil
 }
+
+func jneHandler(op *Instruction) (bool, error) {
+	if registers[op.regs[0]] != 0 {
+		oldPos := registers[regPC]
+		registers[regPC] = op.regs[2]
+		advancePC = false
+		Logf("jne from locaton:%d to:%d\n", oldPos, op.regs[2])
+	}
+	return false, nil
+}
+
 func inHandler(op *Instruction) (bool, error) {
 	reg := op.regs[0]
 	if !isValidRegister(reg) {
@@ -238,8 +248,10 @@ func divHandler(op *Instruction) (bool, error) {
 func subHandler(op *Instruction) (bool, error) {
 	dstReg := op.regs[0]
 	srcReg := op.regs[1]
-
-	registers[dstReg] = registers[dstReg] - registers[srcReg]
+	old := registers[dstReg]
+	registers[dstReg] = registers[srcReg] - registers[dstReg]
+	Logf("sub %s - %s res:%d = %d - %d\n", regTable[dstReg], regTable[srcReg],
+		registers[dstReg], registers[srcReg], old)
 	return false, nil
 }
 

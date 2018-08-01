@@ -212,8 +212,9 @@ func genRepeat(node *SyntaxTree) {
 	if right.token.tokenType == tokenLess {
 		emitRMCode(opJlt, dstReg, regNone, location)
 	} else if right.token.tokenType == tokenEqual {
-		emitRMCode(opJeq, dstReg, regNone, location)
+		emitRMCode(opJne, dstReg, regNone, location)
 	}
+	freeReg(dstReg)
 }
 
 func genAssign(node *SyntaxTree) {
@@ -257,8 +258,8 @@ func genExp(node *SyntaxTree) {
 	case tokenMinus:
 		genExp(node.Left())
 		genExp(node.Right())
-		srcReg := popUsedReg()
 		dstReg := popUsedReg()
+		srcReg := popUsedReg()
 		emitROCode(opSub, dstReg, srcReg, dstReg)
 		freeReg(srcReg)
 	case tokenMultiply:
