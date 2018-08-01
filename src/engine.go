@@ -39,16 +39,18 @@ type TinyVM struct {
 	singleStep     bool
 	signalCh       chan int
 	currentDMemPos int
+	stdin          chan string
 }
 
 var tvm = NewTinyVM()
 
 func NewTinyVM() *TinyVM {
-	return &TinyVM{
+	vm := &TinyVM{
 		imem:      make([]*Instruction, 0, iMemSize),
 		dmem:      make([]int, dMemSize, dMemSize),
 		regs:      make([]int, regNum),
 		advancePC: true,
+		stdin:     make(chan string),
 		regM: &regManager{
 			top: -1,
 			freeRegs: map[int]bool{
@@ -57,6 +59,15 @@ func NewTinyVM() *TinyVM {
 			},
 		},
 	}
+	/*
+			file, err := os.Create("/tmp/tinyvm.pipe")
+			if err != nil {
+				panic(err)
+			}
+			vm.stdin = file
+		    os.Pipe(vm.stdin, os.Stdin,
+	*/
+	return vm
 }
 
 func (tm *TinyVM) allocReg() int {
@@ -214,6 +225,15 @@ func dumpDataMem() {
 
 }
 
+func (tm *TinyVM) Input(str string) bool {
+	select {
+	case tm.stdin <- str:
+		return true
+	default:
+	}
+	return false
+}
+
 //initEngine, init all registers, instruction memory and data memory
 func initEngine() {
 	/*
@@ -356,7 +376,9 @@ func inHandler(op *Instruction) (bool, error) {
 	}
 	in := 0
 	fmt.Printf("input integer:\n")
-	n, err := fmt.Fscanf(os.Stdin, "%d", &in)
+	str := <-op.vm.stdin
+	//n, err := fmt.Fscanf(op.vm.stdin, "%d", &in)
+	n, err := fmt.Sscanf(str, "%d", &in)
 	if err != nil {
 		return false, fmt.Errorf("invalid input in opcode <in>. num:%d err:%v", n, err)
 	}
@@ -373,6 +395,7 @@ func outHandler(op *Instruction) (bool, error) {
 		return false, fmt.Errorf("invalid register in <out> regs:%v", op.regs)
 	}
 	fmt.Printf("out:%d\n", vm.regs[r])
+	os.Stdout.Sync()
 	Logf("exec <out> (%d,%d)\n", r, vm.regs[r])
 	return false, nil
 }
