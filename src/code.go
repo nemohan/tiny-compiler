@@ -77,27 +77,36 @@ type Instruction struct {
 	opcode  int
 	regs    []int
 	handler func(*Instruction) (bool, error)
+	vm      *TinyVM
 }
 
 const regNum = 8
 const iMemSize = 1024
 const dMemSize = 1024
 
+/*
 var registers = make([]int, regNum)
 var iMem = make([]*Instruction, 0, iMemSize)
 var dMem = make([]int, dMemSize, dMemSize)
 var currentDMemPos = 0
-
+*/
 var iMemPatches = make([]int, 0)
 
 const invalidPos = -1
 
 type regManager struct {
-	top      int
-	freeRegs map[int]bool
-	usedRegs []int
+	top         int
+	freeRegs    map[int]bool
+	usedRegs    []int
+	iMemPatches []int
 }
 
+type CodeGenerator struct {
+	imem []*Instruction
+	dmem []int
+}
+
+/*
 var regM = regManager{
 	top: -1,
 	freeRegs: map[int]bool{
@@ -105,7 +114,7 @@ var regM = regManager{
 		r1: true,
 	},
 }
-
+*/
 func isRMCode(code int) bool {
 	rmCodes := map[int]bool{
 		opLd:  true,
@@ -125,6 +134,7 @@ func isRMCode(code int) bool {
 	}
 	return false
 }
+
 func GenCode(root *SyntaxTree) {
 	genCode(root)
 	emitROCode(opHalt, regNone, regNone, regNone)
@@ -284,7 +294,44 @@ func strToInt(n string) int {
 	}
 	return int(v)
 }
+func enterDMem(node *SyntaxTree) int {
+	return tvm.enterDMem(node)
+}
 
+func getIMemLocation() int {
+	return tvm.getIMemLocation()
+}
+
+func getIMemNextLoc() int {
+	return tvm.getIMemNextLoc()
+}
+
+//func patchCode(srcPos, dstPos int) {
+func patchCode(pos int) {
+	tvm.patchCode(pos)
+}
+
+func emitROCode(opcode int, dstReg, srcReg, srcReg2 int) int {
+	return tvm.emitROCode(opcode, dstReg, srcReg, srcReg2)
+}
+
+func emitRMCode(opcode int, dstReg, srcReg int, offset int) int {
+	return tvm.emitRMCode(opcode, dstReg, srcReg, offset)
+}
+
+func popUsedReg() int {
+	return tvm.popUsedReg()
+}
+
+func freeReg(reg int) {
+	tvm.freeReg(reg)
+}
+
+func allocReg() int {
+	return tvm.allocReg()
+}
+
+/*
 func enterDMem(node *SyntaxTree) int {
 	location := findSym(node.token.lexeme)
 	//dMem = append(dMem, location)
@@ -357,7 +404,6 @@ func popUsedReg() int {
 	regM.top--
 	return r
 }
-
 func freeReg(reg int) {
 	free := regM.freeRegs[reg]
 	if free {
@@ -402,34 +448,4 @@ func allocReg() int {
 	regM.top++
 	return minReg
 }
-
-func dumpRegister() {
-	for i, v := range registers {
-		Logf("reg:%s %d\n", regTable[i], v)
-	}
-}
-
-func dumpInstructions() {
-	for i, v := range iMem {
-		if v == nil {
-			break
-		}
-		if v.opcode == opHalt {
-			Logf("%04d: %-6s %s, %d(%s)\n", i, opTable[v.opcode], regTable[v.regs[0]],
-				v.regs[2], regTable[v.regs[1]])
-			break
-		}
-		if isRMCode(v.opcode) {
-			Logf("%04d: %-6s %s, %d(%s)\n", i, opTable[v.opcode], regTable[v.regs[0]],
-				v.regs[2], regTable[v.regs[1]])
-		} else {
-			Logf("%04d: %-6s %s, %s, %s\n", i, opTable[v.opcode], regTable[v.regs[0]],
-				regTable[v.regs[1]], regTable[v.regs[2]])
-		}
-	}
-	Logf("exit==================\n")
-}
-
-func dumpDataMem() {
-
-}
+*/
