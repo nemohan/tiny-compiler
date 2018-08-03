@@ -86,6 +86,11 @@ var iMem = make([]*Instruction, 0, iMemSize)
 var dMem = make([]int, dMemSize, dMemSize)
 var currentDMemPos = 0
 
+var freeRegs = map[int]bool{
+	r0: true,
+	r1: true,
+}
+
 func GenCode(root *SyntaxTree) {
 	genCode(root)
 	emitROCode(opHalt, regNone, regNone, regNone)
@@ -114,7 +119,9 @@ func genCode(root *SyntaxTree) {
 func genStmt(node *SyntaxTree) {
 	switch node.stmtKind {
 	case ifK:
+		genIf(node)
 	case repeatK:
+		genRepeat(node)
 	case assignK:
 		genAssign(node)
 	case readK:
@@ -127,12 +134,28 @@ func genStmt(node *SyntaxTree) {
 	}
 }
 
+func genIf(node *SyntaxTree) {
+	genExp(node.child)
+}
+
+func genRepeat(node *SyntaxTree) {
+
+}
+
 func genAssign(node *SyntaxTree) {
 	offset := findSym(node.child.token.lexeme)
 	for next := node.child.slibling; next != nil; next = next.slibling {
 		genExp(next)
 	}
 	emitRMCode(opSt, r0, r5, offset)
+}
+
+func genExpForBinOp(node *SyntaxTree) {
+	child := node.child
+	genExp(node.child)
+	for next := child.slibling; next != nil; next = next.slibling {
+		genExp(next)
+	}
 }
 
 func genExp(node *SyntaxTree) {
@@ -148,14 +171,32 @@ func genExp(node *SyntaxTree) {
 		}
 		emitROCode(opAdd, r0, r1, r0)
 	case tokenMinus:
+		child := node.child
+		genExp(child)
+		for next := child.slibling; next != nil; next = next.slibling {
+			genExp(next)
+		}
+		emitROCode(opSub, r0, r1, r0)
 	case tokenMultiply:
 	case tokenDiv:
+	case tokenLess:
+		genExpForBinOp(node)
+		emitROCode(opSub, r0, r1, r0)
+	case tokenEqual:
+		child := node.child
+		genExp(child)
+		for next := child.slibling; next != nil; next = next.slibling {
+			genExp(next)
+		}
+		emitROCode(opSub, r0, r1, r0)
+
 	case tokenId:
 		offset := findSym(node.token.lexeme)
 		emitRMCode(opLd, r0, r5, offset)
 	case tokenNumber:
-		//emitRMCode(opLdc, r1, strToInt(node.token.lexeme), regNone)
+		//dstReg := allocReg()
 		emitRMCode(opLdc, r1, regNone, strToInt(node.token.lexeme))
+		//emitRMCode(opLdc, dstReg, regNone, strToInt(node.token.lexeme))
 	}
 }
 
@@ -199,6 +240,33 @@ func emitRMCode(opcode int, dstReg, srcReg int, offset int) {
 	iMem = append(iMem, op)
 	Logf("emit rmcode:%5s %-s, %-d(%s)\n", opTable[opcode], regTable[dstReg],
 		offset, regTable[srcReg])
+}
+
+func freeReg(reg int) {
+	busy := freeRegs[reg]
+	if !busy {
+		Logf("double free register:%s\n", regTable[reg])
+		panic("double free register")
+	}
+	freeRegs[reg] = false
+}
+
+func allocReg() int {
+	minReg := regNone
+	for r, busy := range freeRegs {
+		if busy {
+			continue
+		}
+		if r < regNone {
+			minReg = r
+		}
+	}
+	if minReg == regNone {
+		panic("no free register\n")
+	}
+	Logf("alloc register:%s\n", regTable[minReg])
+	freeRegs[minReg] = true
+	return minReg
 }
 
 func dumpRegister() {
