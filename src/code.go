@@ -86,6 +86,7 @@ var iMem = make([]*Instruction, 0, iMemSize)
 var dMem = make([]int, dMemSize, dMemSize)
 var currentDMemPos = 0
 
+var lastUsedReg = regNone
 var freeRegs = map[int]bool{
 	r0: true,
 	r1: true,
@@ -125,12 +126,15 @@ func genStmt(node *SyntaxTree) {
 	case assignK:
 		genAssign(node)
 	case readK:
+		dstReg := allocReg()
 		offset := findSym(node.child.token.lexeme)
-		emitROCode(opIn, r1, regNone, regNone)
-		emitRMCode(opSt, r1, r5, offset)
+		emitROCode(opIn, dstReg, regNone, regNone)
+		emitRMCode(opSt, dstReg, r5, offset)
+		freeReg(dstReg)
 	case writeK:
 		genExp(node)
-		emitROCode(opOut, r0, regNone, regNone)
+		emitROCode(opOut, lastUsedReg, regNone, regNone)
+		freeReg(lastUsedReg)
 	}
 }
 
@@ -147,7 +151,9 @@ func genAssign(node *SyntaxTree) {
 	for next := node.child.slibling; next != nil; next = next.slibling {
 		genExp(next)
 	}
+	dstReg := allocReg()
 	emitRMCode(opSt, r0, r5, offset)
+	freeReg(dstReg)
 }
 
 func genExpForBinOp(node *SyntaxTree) {
@@ -248,6 +254,10 @@ func freeReg(reg int) {
 		Logf("double free register:%s\n", regTable[reg])
 		panic("double free register")
 	}
+	if lastUsedReg != reg {
+		Logf("freeing reg:%s don't match last used reg:%s\n", reg, lastUsedReg)
+		panic("reg don't match")
+	}
 	freeRegs[reg] = false
 }
 
@@ -266,6 +276,7 @@ func allocReg() int {
 	}
 	Logf("alloc register:%s\n", regTable[minReg])
 	freeRegs[minReg] = true
+	lastUsedReg = minReg
 	return minReg
 }
 
