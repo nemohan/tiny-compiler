@@ -11,7 +11,7 @@ if 0 < x then {don't compute if x <= 0}
         x := x -1;
         until x = 0;
     write fact {output factorial of x}
-else if
+else if x < 5 then
   y := x * 2;
   write y;
 end
