@@ -128,7 +128,7 @@ func GenTraverse(root *SyntaxTree, preProc, postProc traverseProc) {
 		}
 		GenTraverse(c, preProc, postProc)
 		for next := c.sibling; next != nil; next = next.sibling {
-			GenTraverse(c, preProc, postProc)
+			GenTraverse(next, preProc, postProc)
 		}
 	}
 	postProc(root)
