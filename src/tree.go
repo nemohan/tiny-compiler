@@ -19,6 +19,8 @@ type SyntaxTree struct {
 	childIdx int
 }
 
+var treeLine = 0
+
 type traverseProc func(*SyntaxTree)
 
 func printTraverseProc(node *SyntaxTree) {
@@ -67,6 +69,7 @@ func (st *SyntaxTree) DFSTraverse() {
 		return
 	}
 	dfsTraverse(st)
+	treeLine = 0
 }
 
 func tabNum(n int) string {
@@ -89,15 +92,15 @@ func dfsTraverse(node *SyntaxTree) {
 		tokenStr = node.token.SimpleStr()
 	}
 	height := node.height
-	Logf("%s node:%d height:%d %s\n", tabNum(height),
+	Logf("%d %s node:%d height:%d %s\n", treeLine, tabNum(height),
 		node.nodeKind, height, tokenStr)
+	treeLine++
 	for _, c := range node.childs {
 		if c == nil {
 			continue
 		}
 		dfsTraverse(c)
 		for next := c.sibling; next != nil; next = next.sibling {
-			//dfsTraverse(c.sibling)
 			dfsTraverse(next)
 		}
 	}
