@@ -96,7 +96,10 @@ func dfsTraverse(node *SyntaxTree) {
 			continue
 		}
 		dfsTraverse(c)
-		dfsTraverse(c.sibling)
+		for next := c.sibling; next != nil; next = next.sibling {
+			//dfsTraverse(c.sibling)
+			dfsTraverse(next)
+		}
 	}
 }
 
@@ -112,7 +115,6 @@ func GenTraverse(root *SyntaxTree, preProc, postProc traverseProc) {
 	postProc(root)
 }
 */
-
 func (st *SyntaxTree) Traverse() {
 	queue := []*SyntaxTree{st}
 	traverse(queue)
@@ -125,7 +127,9 @@ func newIter(node *SyntaxTree) func(**SyntaxTree) bool {
 			return false
 		}
 		*next = first.sibling
-		first = (*next).sibling
+		//buggy
+		//first = (*next).sibling
+		first = first.sibling
 		return true
 	}
 }

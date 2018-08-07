@@ -36,6 +36,17 @@ func TestTree(t *testing.T) {
 	retChild := NewSyntaxTree(retToken, 1, 2)
 	funcChild.AddChild(retChild)
 
+	floatToken := newToken()
+	floatToken.lexeme = "float"
+	retChild1 := NewSyntaxTree(floatToken, 1, 2)
+	retChild.AddSibling(retChild1)
+
+	//where my char
+	charToken := newToken()
+	charToken.lexeme = "char"
+	retChild2 := NewSyntaxTree(charToken, 1, 2)
+	retChild1.AddSibling(retChild2)
+
 	forToken := newToken()
 	forToken.lexeme = "for"
 	forChild := NewSyntaxTree(forToken, 1, 2)

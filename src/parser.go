@@ -53,14 +53,14 @@ func Parse() *SyntaxTree {
 	*/
 	astRoot := NewSyntaxTree(nil, fileK, voidK)
 	child := parseStmtSeq()
-	astRoot.AddLeftChild(child)
+	astRoot.AddChild(child)
 	astRoot.Traverse()
 	astRoot.DFSTraverse()
 	return astRoot
 }
 
+//TODO: handle syntax error ---------------
 func parseStmtSeq() *SyntaxTree {
-	//for parseErr == nil && currentToken.tokenType != tokenEof {
 	if parseErr != nil {
 		return nil
 	}
@@ -75,62 +75,60 @@ func parseStmtSeq() *SyntaxTree {
 			return nil
 		}
 		assignTree := NewSyntaxTree(lastToken, stmtK, assignK)
-		assignTree.AddLeftChild(left)
+		assignTree.AddChild(left)
 		right := parseAssignStmt()
-		assignTree.AddRightChild(right)
+		assignTree.AddChild(right)
 		//root.AddChild(assignTree)
-		//assignTree.Traverse()
 		//don't care match or not
 		match(tokenSemi)
-		assignTree.AddSlibling(parseStmtSeq())
+		assignTree.AddSibling(parseStmtSeq())
 		return assignTree
 	case tokenIf:
-		lastToken := currentToken
-		//TODO: error
+		//TODO: how about move all this to function parseIfStmt
+		ifTree := NewSyntaxTree(currentToken, stmtK, ifK)
 		match(tokenIf)
-		ifTree := NewSyntaxTree(lastToken, stmtK, ifK)
-		ifTree.AddLeftChild(parseIfStmt())
-		//root.AddChild(ifTree)
-		//TODO: semicolone should not follow if-stmt
+		parseIfStmt(ifTree)
+		//note: semicolone should not follow if-stmt
 		match(tokenSemi)
-		ifTree.AddSlibling(parseStmtSeq())
+		ifTree.AddSibling(parseStmtSeq())
 		return ifTree
+
 	case tokenRead:
-		lastToken := currentToken
+		readTree := NewSyntaxTree(currentToken, stmtK, readK)
 		match(tokenRead)
-		readTree := NewSyntaxTree(lastToken, stmtK, readK)
-		readTree.AddLeftChild(parseReadStmt())
-		//root.AddChild(readTree)
+		readTree.AddChild(parseReadStmt())
+		//note: semicolon as seperator
+		//TODO: this will assume a semicolon must follow read
 		match(tokenSemi)
-		readTree.AddSlibling(parseStmtSeq())
+		readTree.AddSibling(parseStmtSeq())
 		return readTree
+
 	case tokenRepeat:
-		lastToken := currentToken
-		match(tokenRepeat)
-		repeatTree := NewSyntaxTree(lastToken, stmtK, repeatK)
-		//root.AddChild(repeatTree)
-		parseRepeatStmt(repeatTree)
-		repeatTree.AddSlibling(parseStmtSeq())
-		return repeatTree
+		repTree := parseRepeatStmt()
+		sibling := parseStmtSeq()
+		repTree.AddSibling(sibling)
+		return repTree
 	case tokenWrite:
-		lastToken := currentToken
+		writeTree := NewSyntaxTree(currentToken, stmtK, writeK)
 		match(tokenWrite)
-		writeTree := NewSyntaxTree(lastToken, stmtK, writeK)
-		//root.AddChild(writeTree)
 		writeTree.AddChild(parseWriteStmt())
-		match(tokenSemi)
-		writeTree.AddSlibling(parseStmtSeq())
+		if currentToken.tokenType == tokenSemi {
+			match(tokenSemi)
+		}
+		writeTree.AddSibling(parseStmtSeq())
 		return writeTree
 	case tokenEOF:
 		return nil
 	default:
 		//panic("default parseStmtSeq")
+		Logf("default: %s\n", currentToken.lexeme)
 		return nil
 	}
 	//}
 	return nil
 }
 
+/*
 func parseStmtSequence(root *SyntaxTree) *SyntaxTree {
 	var tree *SyntaxTree
 	for parseErr == nil && currentToken.tokenType != tokenEOF {
@@ -186,45 +184,70 @@ func parseStmtSequence(root *SyntaxTree) *SyntaxTree {
 	}
 	return tree
 }
-
+*/
 func parseStmt() {
 
 }
 
-func parseIfStmt() *SyntaxTree {
+func parseIfStmt(parent *SyntaxTree) *SyntaxTree {
 	tree := parseExp()
-	//lastToken := currentToken
+	parent.AddChild(tree)
 	if !match(tokenThen) {
 		//TODO:
 	}
 	//TODO: don't need then any more, need the body
 	/*
 		slibling := NewSyntaxTree(lastToken, expK, 0)
-		tree.AddSlibling(slibling)
+		tree.AddSibling(slibling)
 		parseStmtSequence(slibling)
 	*/
 	thenBody := parseStmtSeq()
-	tree.AddSlibling(thenBody)
+	parent.AddChild(thenBody)
 	//optional
-	if match(tokenElse) {
-		parseStmtSequence(nil)
+	/*
+		if match(tokenElse) {
+			parseStmtSequence(nil)
+		}
+	*/
+	//note: this is better than code "if match(tokenElse)"
+	if currentToken.tokenType == tokenElse {
+		match(tokenElse)
+		elseBody := parseStmtSeq()
+		parent.AddChild(elseBody)
 	}
-
 	if !match(tokenEndBlock) {
 
 	}
 	return tree
 }
 
+//New version
+func parseRepeatStmt() *SyntaxTree {
+	repeatTree := NewSyntaxTree(currentToken, stmtK, repeatK)
+	match(tokenRepeat)
+	repBody := parseStmtSeq()
+	repeatTree.AddChild(repBody)
+	if !match(tokenUntil) {
+		//TODO:
+	}
+	repeatTree.AddChild(parseExp())
+	match(tokenSemi)
+	return repeatTree
+}
+
+//old version
+/*
 func parseRepeatStmt(root *SyntaxTree) {
-	parseStmtSequence(root)
+	//parseStmtSequence(root)
+	repBody := parseStmtSeq()
+	root.AddChild(repBody)
 	if !match(tokenUntil) {
 		//TODO:
 	}
 	root.AddChild(parseExp())
 	match(tokenSemi)
 }
-
+*/
 func parseAssignStmt() *SyntaxTree {
 	tree := parseExp()
 	return tree
@@ -248,7 +271,6 @@ func parseWriteStmt() *SyntaxTree {
 
 func handleExp(tree *SyntaxTree) *SyntaxTree {
 	right := parseSimpleExp()
-	//tree.AddRightChild(right)
 	tree.AddChild(right)
 	return tree
 }
@@ -258,16 +280,16 @@ func parseExp() *SyntaxTree {
 	switch currentToken.tokenType {
 	case tokenLess:
 		node := NewSyntaxTree(currentToken, expK, opK)
-		node.AddLeftChild(expTree)
+		node.AddChild(expTree)
 		match(tokenLess)
 		expTree = handleExp(node)
-		expTree.Traverse()
-
+		return node
 	case tokenEqual:
 		node := NewSyntaxTree(currentToken, expK, opK)
-		node.AddLeftChild(expTree)
+		node.AddChild(expTree)
 		match(tokenEqual)
 		expTree = handleExp(expTree)
+		return node
 	default:
 		//panic("parseExp")
 	}
@@ -281,16 +303,16 @@ func parseSimpleExp() *SyntaxTree {
 		switch tokenType {
 		case tokenAdd:
 			tree := NewSyntaxTree(currentToken, expK, opK)
-			tree.AddLeftChild(leftTree)
+			tree.AddChild(leftTree)
 			match(tokenAdd)
-			tree.AddRightChild(parseTerm())
+			tree.AddChild(parseTerm())
 			leftTree = tree
 
 		case tokenMinus:
 			tree := NewSyntaxTree(currentToken, expK, opK)
-			tree.AddLeftChild(leftTree)
+			tree.AddChild(leftTree)
 			match(tokenMinus)
-			tree.AddRightChild(parseTerm())
+			tree.AddChild(parseTerm())
 			leftTree = tree
 		default:
 			panic("parseSimpleExp")
@@ -308,15 +330,15 @@ func parseTerm() *SyntaxTree {
 		case tokenMultiply:
 			opTree := NewSyntaxTree(currentToken, expK, opK)
 			match(tokenMultiply)
-			opTree.AddLeftChild(leftTree)
-			opTree.AddRightChild(parseFactor())
+			opTree.AddChild(leftTree)
+			opTree.AddChild(parseFactor())
 			leftTree = opTree
 
 		case tokenDiv:
 			opTree := NewSyntaxTree(currentToken, expK, opK)
 			match(tokenDiv)
-			opTree.AddLeftChild(leftTree)
-			opTree.AddRightChild(parseFactor())
+			opTree.AddChild(leftTree)
+			opTree.AddChild(parseFactor())
 			leftTree = opTree
 		}
 		tokenType = currentToken.tokenType
