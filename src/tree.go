@@ -106,18 +106,28 @@ func dfsTraverse(node *SyntaxTree) {
 	}
 }
 
-/*
 func GenTraverse(root *SyntaxTree, preProc, postProc traverseProc) {
 	if root == nil {
 		return
 	}
 	preProc(root)
-	for next := root.child; next != nil; next = next.sibling {
-		GenTraverse(next, preProc, postProc)
+	/*
+		for next := root.child; next != nil; next = next.sibling {
+			GenTraverse(next, preProc, postProc)
+		}
+	*/
+	for _, c := range root.childs {
+		if c == nil {
+			continue
+		}
+		GenTraverse(c, preProc, postProc)
+		for next := c.sibling; next != nil; next = next.sibling {
+			GenTraverse(c, preProc, postProc)
+		}
 	}
 	postProc(root)
 }
-*/
+
 func (st *SyntaxTree) Traverse() {
 	queue := []*SyntaxTree{st}
 	traverse(queue)
