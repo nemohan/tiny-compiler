@@ -131,7 +131,8 @@ func genCode(root *SyntaxTree) {
 	}
 	node := root
 	if root.nodeKind == fileK {
-		node = root.child
+		//node = root.child
+		node = root.childs[0]
 	}
 	if node.nodeKind == stmtK {
 		genStmt(node)
@@ -140,7 +141,7 @@ func genCode(root *SyntaxTree) {
 		Logf("gen exp\n")
 		genExp(node)
 	}
-	for next := node.slibling; next != nil; next = next.slibling {
+	for next := node.sibling; next != nil; next = next.sibling {
 		genCode(next)
 	}
 }
@@ -155,13 +156,15 @@ func genStmt(node *SyntaxTree) {
 		genAssign(node)
 	case readK:
 		dstReg := allocReg()
-		offset := findSym(node.child.token.lexeme)
+		//offset := findSym(node.child.token.lexeme)
+		offset := findSym(node.Left().token.lexeme)
 		emitROCode(opIn, dstReg, regNone, regNone)
 		emitRMCode(opSt, dstReg, r5, offset)
 		freeReg(dstReg)
 	case writeK:
 		Logf("gen code for write\n")
-		genExp(node.child)
+		//genExp(node.child)
+		genExp(node.Left())
 		r := popUsedReg()
 		emitROCode(opOut, r, regNone, regNone)
 		freeReg(r)
@@ -171,8 +174,11 @@ func genStmt(node *SyntaxTree) {
 func genIf(node *SyntaxTree) {
 	Logf("gen if\n")
 	patchCode()
-	genExp(node.child)
-	if node.child.token.tokenType == tokenLess {
+	left := node.Left()
+	//genExp(node.child)
+	genExp(left)
+	//if node.child.token.tokenType == tokenLess {
+	if left.token.tokenType == tokenLess {
 		destReg := popUsedReg()
 		pos := emitRMCode(opJlt, destReg, regNone, regNone)
 		//note: we should free destReg now
@@ -183,12 +189,16 @@ func genIf(node *SyntaxTree) {
 
 	//TODO: if else  and if else if
 	//TODO: use child and slibling can't distinguish the body part of if and the else part
-	for next := node.child.slibling; next != nil; next = next.slibling {
-		genStmt(next)
-		if next.token.tokenType == tokenElse {
-			patchCode()
+	/*
+		for next := node.child.slibling; next != nil; next = next.slibling {
+			genStmt(next)
+			if next.token.tokenType == tokenElse {
+				patchCode()
+			}
 		}
-	}
+	*/
+	//note: just for then else
+	genStmt(node.Right())
 
 	patchCode()
 }
@@ -198,10 +208,17 @@ func genRepeat(node *SyntaxTree) {
 }
 
 func genAssign(node *SyntaxTree) {
-	offset := findSym(node.child.token.lexeme)
-	for next := node.child.slibling; next != nil; next = next.slibling {
-		genExp(next)
-	}
+
+	//offset := findSym(node.child.token.lexeme)
+	left := node.Left()
+	offset := findSym(left.token.lexeme)
+	/*
+		for next := node.child.slibling; next != nil; next = next.slibling {
+			genExp(next)
+		}
+	*/
+	right := node.Right()
+	genExp(right)
 	Logf("gen assign\n")
 	lastUsed := popUsedReg()
 	emitRMCode(opSt, lastUsed, r5, offset)
@@ -209,11 +226,15 @@ func genAssign(node *SyntaxTree) {
 }
 
 func genExpForBinOp(node *SyntaxTree) {
-	child := node.child
-	genExp(node.child)
-	for next := child.slibling; next != nil; next = next.slibling {
-		genExp(next)
-	}
+	/*
+		child := node.child
+		genExp(node.child)
+		for next := child.slibling; next != nil; next = next.slibling {
+			genExp(next)
+		}
+	*/
+	genExp(node.Left())
+	genExp(node.Right())
 }
 
 func genExp(node *SyntaxTree) {
@@ -222,21 +243,28 @@ func genExp(node *SyntaxTree) {
 	}
 	switch node.token.tokenType {
 	case tokenAdd:
-		child := node.child
-		genExp(node.child)
-		for next := child.slibling; next != nil; next = next.slibling {
-			genExp(next)
-		}
+		//child := node.childs[0]
+		genExp(node.Left())
+		/*
+			for next := child.slibling; next != nil; next = next.slibling {
+				genExp(next)
+			}
+		*/
+		genExp(node.Right())
 		srcReg := popUsedReg()
 		dstReg := popUsedReg()
 		emitROCode(opAdd, dstReg, srcReg, dstReg)
 		freeReg(srcReg)
 	case tokenMinus:
-		child := node.child
-		genExp(child)
-		for next := child.slibling; next != nil; next = next.slibling {
-			genExp(next)
-		}
+		/*
+			child := node.child
+			genExp(child)
+			for next := child.slibling; next != nil; next = next.slibling {
+				genExp(next)
+			}
+		*/
+		genExp(node.Left())
+		genExp(node.Right())
 		srcReg := popUsedReg()
 		dstReg := popUsedReg()
 		emitROCode(opSub, dstReg, srcReg, dstReg)
@@ -250,11 +278,15 @@ func genExp(node *SyntaxTree) {
 		emitROCode(opSub, dstReg, srcReg, dstReg)
 		freeReg(srcReg)
 	case tokenEqual:
-		child := node.child
-		genExp(child)
-		for next := child.slibling; next != nil; next = next.slibling {
-			genExp(next)
-		}
+		/*
+			child := node.child
+			genExp(child)
+			for next := child.slibling; next != nil; next = next.slibling {
+				genExp(next)
+			}
+		*/
+		genExp(node.Left())
+		genExp(node.Right())
 		emitROCode(opSub, r0, r1, r0)
 
 	case tokenId:
@@ -269,6 +301,7 @@ func genExp(node *SyntaxTree) {
 	}
 }
 
+/*
 func nextSibling(node *SyntaxTree) func() *SyntaxTree {
 	return func() *SyntaxTree {
 		next := node.slibling
@@ -278,6 +311,7 @@ func nextSibling(node *SyntaxTree) func() *SyntaxTree {
 		return next
 	}
 }
+*/
 
 func strToInt(n string) int {
 	v, err := strconv.ParseInt(n, 10, 64)
