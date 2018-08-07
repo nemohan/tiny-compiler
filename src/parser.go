@@ -47,10 +47,6 @@ var parseErr error
 
 func Parse() *SyntaxTree {
 	currentToken = GetToken()
-	/*
-		astRoot := NewSyntaxTree(nil, fileK, voidK)
-		parseStmtSequence(astRoot)
-	*/
 	astRoot := NewSyntaxTree(nil, fileK, voidK)
 	child := parseStmtSeq()
 	astRoot.AddChild(child)
