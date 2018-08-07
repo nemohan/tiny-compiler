@@ -44,6 +44,12 @@ func NewSyntaxTree(token *tokenSymbol, nodeKind int, kind int) *SyntaxTree {
 	return node
 }
 
+func (st *SyntaxTree) Left() *SyntaxTree {
+	return st.childs[0]
+}
+func (st *SyntaxTree) Right() *SyntaxTree {
+	return st.childs[1]
+}
 func (st *SyntaxTree) AddSibling(node *SyntaxTree) {
 	if st == nil {
 		panic("add sibling to empty node")
@@ -146,7 +152,6 @@ func newIter(node *SyntaxTree) func(**SyntaxTree) bool {
 		return true
 	}
 }
-
 func traverse(queue []*SyntaxTree) {
 	if len(queue) == 0 {
 		return
