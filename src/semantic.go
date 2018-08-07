@@ -42,20 +42,20 @@ func checkType(node *SyntaxTree) {
 */
 func checkStmt(node *SyntaxTree) {
 	//the statement's type does not decide yet
-	if node.child.expType == typeVoid {
+	if node.childs[0].expType == typeVoid {
 		return
 	}
 	t := node.token
-	childType := node.child.expType
+	childType := node.childs[0].expType
 	switch t.tokenType {
 	case tokenIf:
-		if node.child.expType != typeBool {
+		if node.childs[0].expType != typeBool {
 			err := errors.New("can't not use integer type in if statement, expect bool type")
 			addErr(t, err)
 		}
 
 	case tokenRepeat:
-		if node.child.expType != typeBool {
+		if node.childs[0].expType != typeBool {
 			err := errors.New("can't not use integer type in repeat statement, expect bool type")
 			addErr(t, err)
 		}
@@ -65,7 +65,7 @@ func checkStmt(node *SyntaxTree) {
 			addErr(t, err)
 		}
 	case tokenAssign:
-		if childType != node.child.slibling.expType {
+		if childType != node.childs[1].expType {
 			err := errors.New("can't not use bool type in assign statement, expect int type")
 			addErr(t, err)
 		}
@@ -141,6 +141,6 @@ func isAnyTypeErr() bool {
 
 func dumpTypeErr() {
 	for _, t := range typeErrs {
-		fmt.Printf("file:%s line:%d %v\n", t.token.file, t.token.line, t.err)
+		Logf("file:%s line:%d %v\n", t.token.file, t.token.line, t.err)
 	}
 }
