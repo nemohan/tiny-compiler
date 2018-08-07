@@ -84,11 +84,7 @@ func parseStmtSeq() *SyntaxTree {
 		assignTree.AddSibling(parseStmtSeq())
 		return assignTree
 	case tokenIf:
-		//TODO: how about move all this to function parseIfStmt
-		ifTree := NewSyntaxTree(currentToken, stmtK, ifK)
-		match(tokenIf)
-		parseIfStmt(ifTree)
-		//note: semicolone should not follow if-stmt
+		ifTree := parseIfStmt()
 		match(tokenSemi)
 		ifTree.AddSibling(parseStmtSeq())
 		return ifTree
@@ -128,100 +124,30 @@ func parseStmtSeq() *SyntaxTree {
 	return nil
 }
 
-/*
-func parseStmtSequence(root *SyntaxTree) *SyntaxTree {
-	var tree *SyntaxTree
-	for parseErr == nil && currentToken.tokenType != tokenEOF {
-		switch currentToken.tokenType {
-		case tokenId:
-			left := NewSyntaxTree(currentToken, expK, idK)
-			match(tokenId)
-			lastToken := currentToken
-			if !match(tokenAssign) {
-				parseErr = errors.New(" tokenAssign")
-				return tree
-			}
-			assignTree := NewSyntaxTree(lastToken, stmtK, assignK)
-			assignTree.AddLeftChild(left)
-			right := parseAssignStmt()
-			assignTree.AddRightChild(right)
-			root.AddChild(assignTree)
-			assignTree.Traverse()
-			//don't care match or not
-			match(tokenSemi)
-		default:
-			lastToken := currentToken
-			//TODO: error
-			if match(tokenIf) {
-				ifTree := NewSyntaxTree(lastToken, stmtK, ifK)
-				ifTree.AddLeftChild(parseIfStmt())
-				root.AddChild(ifTree)
-				match(tokenSemi)
-				continue
-			}
+func parseIfStmt() *SyntaxTree {
+	ifTree := NewSyntaxTree(currentToken, stmtK, ifK)
+	match(tokenIf)
 
-			if match(tokenRead) {
-				readTree := NewSyntaxTree(lastToken, stmtK, readK)
-				readTree.AddLeftChild(parseReadStmt())
-				root.AddChild(readTree)
-				match(tokenSemi)
-				continue
-			}
-			if match(tokenRepeat) {
-				repeatTree := NewSyntaxTree(lastToken, stmtK, repeatK)
-				root.AddChild(repeatTree)
-				parseRepeatStmt(repeatTree)
-				continue
-			}
-			if match(tokenWrite) {
-				writeTree := NewSyntaxTree(lastToken, stmtK, writeK)
-				root.AddChild(writeTree)
-				writeTree.AddChild(parseWriteStmt())
-				continue
-			}
-			return tree
-		}
-	}
-	return tree
-}
-*/
-func parseStmt() {
-
-}
-
-func parseIfStmt(parent *SyntaxTree) *SyntaxTree {
 	tree := parseExp()
-	parent.AddChild(tree)
+	ifTree.AddChild(tree)
 	if !match(tokenThen) {
 		//TODO:
 	}
+
 	//TODO: don't need then any more, need the body
-	/*
-		slibling := NewSyntaxTree(lastToken, expK, 0)
-		tree.AddSibling(slibling)
-		parseStmtSequence(slibling)
-	*/
 	thenBody := parseStmtSeq()
-	parent.AddChild(thenBody)
-	//optional
-	/*
-		if match(tokenElse) {
-			parseStmtSequence(nil)
-		}
-	*/
-	//note: this is better than code "if match(tokenElse)"
+	ifTree.AddChild(thenBody)
 	if currentToken.tokenType == tokenElse {
 		match(tokenElse)
 		elseBody := parseStmtSeq()
-		parent.AddChild(elseBody)
+		ifTree.AddChild(elseBody)
 	}
 	if !match(tokenEndBlock) {
 
 	}
-	return tree
+	return ifTree
 }
 
-//New version
 func parseRepeatStmt() *SyntaxTree {
 	repeatTree := NewSyntaxTree(currentToken, stmtK, repeatK)
 	match(tokenRepeat)
@@ -235,19 +161,6 @@ func parseRepeatStmt() *SyntaxTree {
 	return repeatTree
 }
 
-//old version
-/*
-func parseRepeatStmt(root *SyntaxTree) {
-	//parseStmtSequence(root)
-	repBody := parseStmtSeq()
-	root.AddChild(repBody)
-	if !match(tokenUntil) {
-		//TODO:
-	}
-	root.AddChild(parseExp())
-	match(tokenSemi)
-}
-*/
 func parseAssignStmt() *SyntaxTree {
 	tree := parseExp()
 	return tree
