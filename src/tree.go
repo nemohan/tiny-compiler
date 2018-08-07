@@ -4,9 +4,11 @@ import (
 	"fmt"
 )
 
+const maxChildNum = 3
+
 type SyntaxTree struct {
-	child    *SyntaxTree
-	slibling *SyntaxTree
+	childs   [maxChildNum]*SyntaxTree
+	sibling  *SyntaxTree
 	parent   *SyntaxTree
 	nodeKind int
 	expKind  int
@@ -14,6 +16,7 @@ type SyntaxTree struct {
 	expType  int
 	token    *tokenSymbol
 	height   int
+	childIdx int
 }
 
 type traverseProc func(*SyntaxTree)
@@ -27,6 +30,7 @@ func printTraverseProc(node *SyntaxTree) {
 
 func emptyTraverseProc(node *SyntaxTree) {
 }
+
 func NewSyntaxTree(token *tokenSymbol, nodeKind int, kind int) *SyntaxTree {
 	node := &SyntaxTree{
 		nodeKind: nodeKind,
@@ -38,48 +42,30 @@ func NewSyntaxTree(token *tokenSymbol, nodeKind int, kind int) *SyntaxTree {
 	return node
 }
 
-func (st *SyntaxTree) AddSlibling(node *SyntaxTree) {
+func (st *SyntaxTree) AddSibling(node *SyntaxTree) {
 	if st == nil {
-		return
+		panic("add sibling to empty node")
 	}
 	next := st
-	for ; next.slibling != nil; next = next.slibling {
+	for ; next.sibling != nil; next = next.sibling {
 		//empty
 	}
-	next.slibling = node
-
+	next.sibling = node
 }
+
 func (st *SyntaxTree) AddChild(node *SyntaxTree) {
-	//node.height = st.height + 1
-	if st.child == nil {
-		st.AddLeftChild(node)
-		return
-	}
-	st.AddRightChild(node)
-}
-func (st *SyntaxTree) AddLeftChild(node *SyntaxTree) {
-	//node.height = st.height + 1
-	st.child = node
-}
-
-func (st *SyntaxTree) AddRightChild(node *SyntaxTree) {
-	if st.child == nil {
-		msg := fmt.Sprintf("node:%v child is empty\n", st)
+	if st.childIdx >= maxChildNum {
+		msg := fmt.Sprintf("child number:%d beyond max:%d\n", st.childIdx, maxChildNum)
 		panic(msg)
 	}
-	//node.height = st.height + 1
-	next := st.child
-	for ; next.slibling != nil; next = next.slibling {
-		//empty
-	}
-	next.slibling = node
+	st.childs[st.childIdx] = node
+	st.childIdx++
 }
 
 func (st *SyntaxTree) DFSTraverse() {
 	if st == nil {
 		return
 	}
-	//stack := []*SyntaxTree{st.root}
 	dfsTraverse(st)
 }
 
@@ -90,6 +76,8 @@ func tabNum(n int) string {
 	}
 	return s
 }
+
+//preOrder traverse
 func dfsTraverse(node *SyntaxTree) {
 	if node == nil {
 		return
@@ -103,24 +91,43 @@ func dfsTraverse(node *SyntaxTree) {
 	height := node.height
 	Logf("%s node:%d height:%d %s\n", tabNum(height),
 		node.nodeKind, height, tokenStr)
-	dfsTraverse(node.child)
-	dfsTraverse(node.slibling)
+	for _, c := range node.childs {
+		if c == nil {
+			continue
+		}
+		dfsTraverse(c)
+		dfsTraverse(c.sibling)
+	}
 }
 
+/*
 func GenTraverse(root *SyntaxTree, preProc, postProc traverseProc) {
 	if root == nil {
 		return
 	}
 	preProc(root)
-	for next := root.child; next != nil; next = next.slibling {
+	for next := root.child; next != nil; next = next.sibling {
 		GenTraverse(next, preProc, postProc)
 	}
 	postProc(root)
 }
+*/
 
 func (st *SyntaxTree) Traverse() {
 	queue := []*SyntaxTree{st}
 	traverse(queue)
+}
+
+func newIter(node *SyntaxTree) func(**SyntaxTree) bool {
+	first := node
+	return func(next **SyntaxTree) bool {
+		if first == nil || first.sibling == nil {
+			return false
+		}
+		*next = first.sibling
+		first = (*next).sibling
+		return true
+	}
 }
 
 func traverse(queue []*SyntaxTree) {
@@ -130,10 +137,19 @@ func traverse(queue []*SyntaxTree) {
 	node := queue[0]
 	queue = append(queue[:0], queue[1:]...)
 	Logf("kind:%d     token:%v height:%d\n", node.nodeKind, node.token, node.height)
-	next := node.child
-	for ; next != nil; next = next.slibling {
-		next.height = node.height + 1
-		queue = append(queue, next)
+	for _, child := range node.childs {
+		if child == nil {
+			continue
+		}
+
+		moreSibling := newIter(child)
+		child.height = node.height + 1
+		queue = append(queue, child)
+		var sibling *SyntaxTree
+		for moreSibling(&sibling) {
+			(sibling).height = node.height + 1
+			queue = append(queue, sibling)
+		}
 	}
 	traverse(queue)
 }
