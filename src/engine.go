@@ -113,8 +113,9 @@ func jltHandler(op *Instruction) (bool, error) {
 	if res < 0 {
 		Logf("jlt jump to addr:%d\n", op.regs[2])
 		registers[regPC] = op.regs[2]
+		advancePC = false
 	}
-	advancePC = false
+	//advancePC = false
 	return false, nil
 }
 

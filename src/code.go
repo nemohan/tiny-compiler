@@ -156,14 +156,12 @@ func genStmt(node *SyntaxTree) {
 		genAssign(node)
 	case readK:
 		dstReg := allocReg()
-		//offset := findSym(node.child.token.lexeme)
 		offset := findSym(node.Left().token.lexeme)
 		emitROCode(opIn, dstReg, regNone, regNone)
 		emitRMCode(opSt, dstReg, r5, offset)
 		freeReg(dstReg)
 	case writeK:
 		Logf("gen code for write\n")
-		//genExp(node.child)
 		genExp(node.Left())
 		r := popUsedReg()
 		emitROCode(opOut, r, regNone, regNone)
@@ -175,9 +173,7 @@ func genIf(node *SyntaxTree) {
 	Logf("gen if\n")
 	patchCode()
 	left := node.Left()
-	//genExp(node.child)
 	genExp(left)
-	//if node.child.token.tokenType == tokenLess {
 	if left.token.tokenType == tokenLess {
 		destReg := popUsedReg()
 		pos := emitRMCode(opJlt, destReg, regNone, regNone)
@@ -198,8 +194,8 @@ func genIf(node *SyntaxTree) {
 		}
 	*/
 	//note: just for then else
-	genStmt(node.Right())
-
+	//genStmt(node.Right())
+	genCode(node.Right())
 	patchCode()
 }
 
@@ -208,7 +204,6 @@ func genRepeat(node *SyntaxTree) {
 }
 
 func genAssign(node *SyntaxTree) {
-
 	//offset := findSym(node.child.token.lexeme)
 	left := node.Left()
 	offset := findSym(left.token.lexeme)
@@ -448,10 +443,10 @@ func dumpInstructions() {
 		}
 
 		if isRMCode(v.opcode) {
-			Logf("%d: %s %s, %d(%s)\n", i, opTable[v.opcode], regTable[v.regs[0]],
+			Logf("%04d: %-6s %s, %d(%s)\n", i, opTable[v.opcode], regTable[v.regs[0]],
 				v.regs[2], regTable[v.regs[1]])
 		} else {
-			Logf("%d: %s %s, %s, %s\n", i, opTable[v.opcode], regTable[v.regs[0]],
+			Logf("%04d: %-6s %s, %s, %s\n", i, opTable[v.opcode], regTable[v.regs[0]],
 				regTable[v.regs[1]], regTable[v.regs[2]])
 		}
 
