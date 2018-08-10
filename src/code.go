@@ -23,6 +23,7 @@ const (
 	opJgt
 	opJeq
 	opJne
+	opUjp
 )
 
 var opTable = map[int]string{
@@ -44,6 +45,7 @@ var opTable = map[int]string{
 	opJgt:  "jgt",
 	opJeq:  "jeq",
 	opJne:  "jne",
+	opUjp:  "ujp",
 }
 
 //registers
@@ -88,6 +90,8 @@ var currentDMemPos = 0
 
 var iMemPatches = make([]int, 0)
 
+const invalidPos = -1
+
 type regManager struct {
 	top      int
 	freeRegs map[int]bool
@@ -114,6 +118,7 @@ func isRMCode(code int) bool {
 		opJgt: true,
 		opJeq: true,
 		opJne: true,
+		opUjp: true,
 	}
 	if _, ok := rmCodes[code]; ok {
 		return true
@@ -171,32 +176,33 @@ func genStmt(node *SyntaxTree) {
 
 func genIf(node *SyntaxTree) {
 	Logf("gen if\n")
-	patchCode()
+	patchCode(invalidPos)
 	left := node.Left()
 	genExp(left)
+	patchPos := invalidPos
 	if left.token.tokenType == tokenLess {
 		destReg := popUsedReg()
 		pos := emitRMCode(opJlt, destReg, regNone, regNone)
 		//note: we should free destReg now
 		freeReg(destReg)
 		iMemPatches = append(iMemPatches, pos)
+		patchPos = len(iMemPatches) - 1
 		Logf("need patch at imem location:%d\n", pos)
 	}
 
-	//TODO: if else  and if else if
-	//TODO: use child and slibling can't distinguish the body part of if and the else part
-	/*
-		for next := node.child.slibling; next != nil; next = next.slibling {
-			genStmt(next)
-			if next.token.tokenType == tokenElse {
-				patchCode()
-			}
-		}
-	*/
-	//note: just for then else
-	//genStmt(node.Right())
+	//note: use child and slibling can't distinguish the body part of if and the else part
+	//then body
 	genCode(node.Right())
-	patchCode()
+	//else body
+	if node.RightMost() != nil {
+		//unconditional jump
+		pos := emitRMCode(opUjp, regNone, regNone, regNone)
+		iMemPatches = append(iMemPatches, pos)
+		patchCode(patchPos)
+		genCode(node.RightMost())
+	} else {
+		patchCode(invalidPos)
+	}
 }
 
 func genRepeat(node *SyntaxTree) {
@@ -207,11 +213,6 @@ func genAssign(node *SyntaxTree) {
 	//offset := findSym(node.child.token.lexeme)
 	left := node.Left()
 	offset := findSym(left.token.lexeme)
-	/*
-		for next := node.child.slibling; next != nil; next = next.slibling {
-			genExp(next)
-		}
-	*/
 	right := node.Right()
 	genExp(right)
 	Logf("gen assign\n")
@@ -232,39 +233,37 @@ func genExpForBinOp(node *SyntaxTree) {
 	genExp(node.Right())
 }
 
+func genArithmetic(opCode int, node *SyntaxTree) {
+	genExp(node.Left())
+	genExp(node.Right())
+	srcReg := popUsedReg()
+	dstReg := popUsedReg()
+	emitROCode(opCode, dstReg, srcReg, dstReg)
+	freeReg(srcReg)
+}
+
 func genExp(node *SyntaxTree) {
 	if node == nil {
 		return
 	}
 	switch node.token.tokenType {
 	case tokenAdd:
-		//child := node.childs[0]
 		genExp(node.Left())
-		/*
-			for next := child.slibling; next != nil; next = next.slibling {
-				genExp(next)
-			}
-		*/
 		genExp(node.Right())
 		srcReg := popUsedReg()
 		dstReg := popUsedReg()
 		emitROCode(opAdd, dstReg, srcReg, dstReg)
 		freeReg(srcReg)
 	case tokenMinus:
-		/*
-			child := node.child
-			genExp(child)
-			for next := child.slibling; next != nil; next = next.slibling {
-				genExp(next)
-			}
-		*/
 		genExp(node.Left())
 		genExp(node.Right())
 		srcReg := popUsedReg()
 		dstReg := popUsedReg()
 		emitROCode(opSub, dstReg, srcReg, dstReg)
 	case tokenMultiply:
+		genArithmetic(opMul, node)
 	case tokenDiv:
+		genArithmetic(opDiv, node)
 	case tokenLess:
 		genExpForBinOp(node)
 		srcReg := popUsedReg() //left
@@ -334,18 +333,21 @@ func getIMemNextLoc() int {
 }
 
 //func patchCode(srcPos, dstPos int) {
-func patchCode() {
-	Logf("want patch some code\n")
-	pos := len(iMemPatches)
-	if pos == 0 {
-		return
+func patchCode(pos int) {
+	Logf("want patch some code at pos:%d\n", pos)
+	if pos == invalidPos {
+		pos = len(iMemPatches)
+		if pos == 0 {
+			return
+		}
+		pos -= 1
 	}
-	srcPos := iMemPatches[pos-1]
+	srcPos := iMemPatches[pos]
 	dstPos := getIMemNextLoc()
 	op := iMem[srcPos]
 	op.regs[2] = dstPos
 	Logf("add patch src pos:%d dst pos:%d\n", srcPos, dstPos)
-	iMemPatches = append(iMemPatches[:pos-1], iMemPatches[pos:]...)
+	iMemPatches = append(iMemPatches[:pos], iMemPatches[pos+1:]...)
 }
 
 func emitROCode(opcode int, dstReg, srcReg, srcReg2 int) int {

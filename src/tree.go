@@ -50,6 +50,10 @@ func (st *SyntaxTree) Left() *SyntaxTree {
 func (st *SyntaxTree) Right() *SyntaxTree {
 	return st.childs[1]
 }
+
+func (st *SyntaxTree) RightMost() *SyntaxTree {
+	return st.childs[2]
+}
 func (st *SyntaxTree) AddSibling(node *SyntaxTree) {
 	if st == nil {
 		panic("add sibling to empty node")
