@@ -439,10 +439,14 @@ func dumpRegister() {
 
 func dumpInstructions() {
 	for i, v := range iMem {
-		if v == nil || v.opcode == opHalt {
+		if v == nil {
 			break
 		}
-
+		if v.opcode == opHalt {
+			Logf("%04d: %-6s %s, %d(%s)\n", i, opTable[v.opcode], regTable[v.regs[0]],
+				v.regs[2], regTable[v.regs[1]])
+			break
+		}
 		if isRMCode(v.opcode) {
 			Logf("%04d: %-6s %s, %d(%s)\n", i, opTable[v.opcode], regTable[v.regs[0]],
 				v.regs[2], regTable[v.regs[1]])
@@ -450,7 +454,6 @@ func dumpInstructions() {
 			Logf("%04d: %-6s %s, %s, %s\n", i, opTable[v.opcode], regTable[v.regs[0]],
 				regTable[v.regs[1]], regTable[v.regs[2]])
 		}
-
 	}
 	Logf("exit==================\n")
 }
