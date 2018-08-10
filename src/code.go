@@ -200,9 +200,8 @@ func genIf(node *SyntaxTree) {
 		iMemPatches = append(iMemPatches, pos)
 		patchCode(patchPos)
 		genCode(node.RightMost())
-	} else {
-		patchCode(invalidPos)
 	}
+	patchCode(invalidPos)
 }
 
 func genRepeat(node *SyntaxTree) {
