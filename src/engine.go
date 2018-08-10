@@ -16,7 +16,7 @@ var opcodeHandlerTable = map[int]func(*Instruction) (bool, error){
 	opOut:  outHandler,
 	opAdd:  addHandler,
 	opSub:  subHandler,
-	opMul:  emptyHandler,
+	opMul:  mulHandler,
 	opDiv:  divHandler,
 	opLd:   ldHandler,
 	opLda:  ldaHandler,
@@ -28,6 +28,7 @@ var opcodeHandlerTable = map[int]func(*Instruction) (bool, error){
 	opJgt:  emptyHandler,
 	opJeq:  emptyHandler,
 	opJne:  emptyHandler,
+	opUjp:  ujpHandler,
 }
 
 //initEngine, init all registers, instruction memory and data memory
@@ -81,6 +82,15 @@ func isValidMemAddr() bool {
 	return true
 }
 
+func checkRegister(op *Instruction) bool {
+	for i, r := range op.regs {
+		if !isValidRegister(r) {
+			Logf("invalid register at:%d op:%s regs:%v\n", i, opTable[op.opcode], op.regs)
+			return false
+		}
+	}
+	return true
+}
 func isValidRegister(reg int) bool {
 	if reg < r0 || reg >= regNone {
 		return false
@@ -119,6 +129,14 @@ func jltHandler(op *Instruction) (bool, error) {
 	return false, nil
 }
 
+func ujpHandler(op *Instruction) (bool, error) {
+	currentPos := registers[regPC]
+	registers[regPC] = op.regs[2]
+	Logf("ujp from location:%d to:%d\n", currentPos, op.regs[2])
+	advancePC = false
+	return false, nil
+}
+
 func inHandler(op *Instruction) (bool, error) {
 	reg := op.regs[0]
 	if !isValidRegister(reg) {
@@ -144,20 +162,6 @@ func outHandler(op *Instruction) (bool, error) {
 	}
 	fmt.Printf("out:%d\n", registers[r])
 	Logf("exec <out> (%d,%d)\n", r, registers[r])
-	return false, nil
-}
-
-func addHandler(op *Instruction) (bool, error) {
-	for _, r := range op.regs {
-		if !isValidRegister(r) {
-			return false, fmt.Errorf("invalid register in <add> regs:%v", op.regs)
-		}
-	}
-	dstReg := op.regs[0]
-	old := registers[dstReg]
-	srcReg := op.regs[1]
-	registers[dstReg] = old + registers[srcReg]
-	Logf(" exec <add> v1:%d v2:%d to reg:%d \n", old, registers[srcReg], dstReg)
 	return false, nil
 }
 
@@ -205,8 +209,21 @@ func stHandler(op *Instruction) (bool, error) {
 	return false, nil
 }
 
-func divHandler(op *Instruction) (bool, error) {
+//===================================arithmetic operation
+func mulHandler(op *Instruction) (bool, error) {
+	if !checkRegister(op) {
+		return true, nil
+	}
+	dstReg := op.regs[0]
+	srcReg := op.regs[1]
+	registers[dstReg] = registers[dstReg] * registers[srcReg]
 	return false, nil
+
+}
+
+func divHandler(op *Instruction) (bool, error) {
+	//return false, nil
+	return emptyHandler(op)
 }
 
 func subHandler(op *Instruction) (bool, error) {
@@ -217,6 +234,19 @@ func subHandler(op *Instruction) (bool, error) {
 	return false, nil
 }
 
+func addHandler(op *Instruction) (bool, error) {
+	for _, r := range op.regs {
+		if !isValidRegister(r) {
+			return false, fmt.Errorf("invalid register in <add> regs:%v", op.regs)
+		}
+	}
+	dstReg := op.regs[0]
+	old := registers[dstReg]
+	srcReg := op.regs[1]
+	registers[dstReg] = old + registers[srcReg]
+	Logf(" exec <add> v1:%d v2:%d to reg:%d \n", old, registers[srcReg], dstReg)
+	return false, nil
+}
 func emptyHandler(op *Instruction) (bool, error) {
 	return true, errors.New("not support")
 }
